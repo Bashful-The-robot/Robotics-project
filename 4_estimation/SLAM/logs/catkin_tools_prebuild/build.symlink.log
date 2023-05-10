@@ -1,0 +1,12 @@
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./setup.bash
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./_setup_util.py
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./local_setup.bash
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./cmake.lock
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./local_setup.sh
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./setup.sh
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./env.sh
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./setup.zsh
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/./local_setup.zsh
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig.cmake
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig-version.cmake
+Symlinking /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel/lib/pkgconfig/catkin_tools_prebuild.pc

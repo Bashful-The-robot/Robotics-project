@@ -1,0 +1,3 @@
+<launch>
+ <node pkg="localization" type="ekf_slam_2.py" name="localization"/>
+</launch>

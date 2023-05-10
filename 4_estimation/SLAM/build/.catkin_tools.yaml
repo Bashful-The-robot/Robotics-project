@@ -1,0 +1,6 @@
+devel_space: /home/robot/BASHFUL_WS/src/4_estimation/SLAM/devel
+install: false
+install_space: /home/robot/BASHFUL_WS/src/4_estimation/SLAM/install
+profile: default
+source_space: /home/robot/BASHFUL_WS/src/4_estimation/SLAM/src
+workspace: /home/robot/BASHFUL_WS/src/4_estimation/SLAM
