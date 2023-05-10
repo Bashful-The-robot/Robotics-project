@@ -16,6 +16,7 @@ import tf2_ros
 import tf2_geometry_msgs
 import torch
 import cv2
+from robp_msgs.msg import flags
 
 import utils
 from detector import Detector
@@ -141,6 +142,8 @@ class object_detect:
 
         self.Pin = PinholeCameraModel()
 
+        flagss = rospy.Subscriber('/system_flags',flags, self.callback_flag)
+
         tss = ApproximateTimeSynchronizer([Subscriber('/usb_cam/image_raw', Img_msgu),
                               Subscriber('usb_cam/camera_info', Cam_infou)],1,1)
         
@@ -150,16 +153,20 @@ class object_detect:
          
         ts.registerCallback(self.callback)
         tss.registerCallback(self.callback_usb)
-
+        
         print("NEW IMAGE RECEIVED") 
 
-    def callback_usb(self, msg: Img_msgu, msgi:Cam_infou):
-        #self.Pin.fromCameraInfo(msgi)
-        # try: 
-        #     basView = self.buffer.lookup_transform("map",msg.header.frame_id, msg.header.stamp)
-        # except: 
-        #     return 
+    def callback_flag(self, msg: flags):
+        if msg.perception == True:
+            for marker in self.marker_array:
+                if msg.object_id == marker.id:
+                    self.marker_array.pop(marker)
+                    self.marker_pub.publish(self.marker_array)
+                
 
+
+    def callback_usb(self, msg: Img_msgu, msgi:Cam_infou):
+        
         cv_image = self.bridge.imgmsg_to_cv2(msg, "rgb8")
         #cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         
@@ -190,6 +197,9 @@ class object_detect:
             u = (bb["x"]+bb["width"]//2)
             v = bb["y"]+bb["height"]//2
 
+            if v1 > 380:
+                continue
+
             ## Draw rectangle
             out_image = cv2.rectangle(out_image,
                                       (u1, v1),
@@ -204,19 +214,22 @@ class object_detect:
                                     (0,0,0),
                                     2)
 
-            #print(msgi)
-            
+
             pos_msg = projectPixelTo3dRayUSB(msgi, (u,v)) #now in x,y,z relative the camera. 
             
-            #print(pos_msg)
+            len_from_cen = np.sqrt((pos_msg[0]*pos_msg[0])+(pos_msg[1]*pos_msg[1]))
+            dd = 0.23
+            height = np.sqrt((dd*dd)+(len_from_cen*len_from_cen))
+            
             pm = PointStamped()
             pm.header.stamp = msg.header.stamp
             pm.header.frame_id = "base_link" #msg.header.frame_id #"camera_link" 
-            pm.point.x = -pos_msg[1]*0.175
-            pm.point.y = -pos_msg[0]*0.175
+            pm.point.x = -pos_msg[0]*height
+            pm.point.y = -pos_msg[1]*height
             pm.point.z = 0
 
-            print(f' USB CAM INFO {pm}')
+            print([cat, [pm.point.x, pm.point.y]])
+            #print(f' USB CAM INFO {pm}')
 
             #do_trans = tf2_geometry_msgs.do_transform_point(pm, basView)   
 
@@ -309,7 +322,7 @@ class object_detect:
             dlal = depth[(v1):(v2-3), (u1):(u2-3)]
             dlal = dlal[~np.isnan(dlal)]
             d = dlal.mean() if dlal.size else 0 
-            print(f'DEPTH {cat}: {d}')
+            #print(f'DEPTH {cat}: {d}')
 
             if d < 0.01 or np.isnan(d): 
                 print("No depth")
@@ -501,7 +514,7 @@ class object_detect:
         return tempsort
     
     def process_color(self, out_image):
-        hsv = cv2.cvtColor(out_image, cv2.COLOR_BGR2HSV) #wrong
+        hsv = cv2.cvtColor(out_image, cv2.COLOR_RGB2HSV) #wrong
         min_green = np.array([50,220,220]) 
         max_green = np.array([60,255,255]) 
         min_red = np.array([170,220,220]) 
@@ -603,7 +616,7 @@ class object_detect:
                 self.marker_array.markers.append(marker)
 
                 marklist.append([cat,i])
-
+        #print(self.marker_array)
         self.marker_pub.publish(self.marker_array)
 
     def run(self):
@@ -619,4 +632,3 @@ if __name__ == '__main__':
     ##  Start node  ##
 
     object_detect().run()
-
