@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>armpi</name>
+  <version>0.0.0</version>
+  <description>Analytic inverse kinematics implementation for controlling the armpi robotic arm</description>
+
+  <maintainer email="ericgilalonso@gmail.com">robot</maintainer>
+
+  <license>BSD</license>
+hiwonder_servo_msgs
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>tf2</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>robp_msgs</build_depend>
+  <build_depend>hiwonder_servo_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+  
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>robp_msgs</build_export_depend>
+  <build_export_depend>hiwonder_servo_msgs</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>tf2</build_export_depend>
+  <build_export_depend>tf2_ros</build_export_depend>
+  <build_export_depend>tf_conversions</build_export_depend>
+  
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>robp_msgs</exec_depend>
+  <exec_depend>hiwonder_servo_msgs</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>tf2</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf_conversions</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>

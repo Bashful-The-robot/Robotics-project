@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="path_generation" name="testing" type="publisher0.py" output="screen"/>
+  <node pkg="path_generation" name="path_generation" type="PathControl.py" output="screen"/>
+</launch>

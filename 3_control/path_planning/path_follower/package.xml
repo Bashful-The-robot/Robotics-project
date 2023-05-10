@@ -1,0 +1,46 @@
+<package format="2">
+
+<name>path_follower</name>
+
+<version>1.0.0</version>
+<description>
+path_follower follower package
+</description>
+
+
+<!-- Maintainer-->
+<maintainer email="ericgilalonso@gmail.com">Eric</maintainer>
+
+<!-- License -->
+<license>BSD</license>
+
+<!-- Dependencies -->
+	<buildtool_depend>catkin</buildtool_depend>
+	<build_depend>rospy</build_depend>
+	<build_depend>std_msgs</build_depend>
+	<build_depend>robp_msgs</build_depend>
+	<build_depend>nav_msgs</build_depend>
+	<build_depend>tf2</build_depend>
+  	<build_depend>tf2_ros</build_depend>
+  	<build_depend>tf_conversions</build_depend>
+	
+	<build_depend>message_generation</build_depend>
+
+	<build_export_depend>rospy</build_export_depend>
+	<build_export_depend>std_msgs</build_export_depend>
+	<build_export_depend>robp_msgs</build_export_depend>
+	<build_export_depend>nav_msgs</build_export_depend>
+	<build_export_depend>tf2</build_export_depend>
+  	<build_export_depend>tf2_ros</build_export_depend>
+  	<build_export_depend>tf_conversions</build_export_depend>
+	
+	<exec_depend>rospy</exec_depend>
+	<exec_depend>std_msgs</exec_depend>
+	<exec_depend>robp_msgs</exec_depend>
+	<exec_depend>nav_msgs</exec_depend>
+	<exec_depend>message_runtime</exec_depend>
+	<exec_depend>tf2</exec_depend>
+  	<exec_depend>tf2_ros</exec_depend>
+  	<exec_depend>tf_conversions</exec_depend>
+
+</package>

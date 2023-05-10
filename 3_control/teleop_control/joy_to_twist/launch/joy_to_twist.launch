@@ -1,0 +1,7 @@
+<launch>
+
+  <node pkg="joy_to_twist" name="joy_to_twist" type="joy_to_twist">
+    <param name="mode" value="usb"/>
+  </node>
+
+</launch>

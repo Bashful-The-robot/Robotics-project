@@ -1,0 +1,6 @@
+<launch>
+
+ <node pkg="joy" type="joy_node" name="joy_node"/>
+    <arg name="_dev_name" value="Logitech Gamepad F710"/>
+
+</launch>
