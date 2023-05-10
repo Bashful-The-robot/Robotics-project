@@ -368,7 +368,7 @@ class CompletedPlaceOrExploration(pt.behaviour.Behaviour):
             common_dict['arm_mission'] = 0
             common_dict['path_gen_mission'] = 0
             common_dict['perception'] = False
-            common_dict['path_control'] = False
+            common_dict['path_control'] = FalseB
             common_dict['target'] = Pose()
             common_dict['pickPose'] = Pose()
             common_dict['placePose'] = Pose()
