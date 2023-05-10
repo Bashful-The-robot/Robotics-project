@@ -1,0 +1,10 @@
+<launch>
+	<arg name="manager" default="logging_manager" doc="Nodelet manager for this nodelet" />
+
+	<group if="$(eval 'logging_manager' == manager)">
+		<node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+	</group>
+
+	<node pkg="nodelet" type="nodelet" name="LoggingNodelet" args="load robp_phidgets/LoggingNodelet $(arg manager)" output="screen">
+	</node>
+</launch>

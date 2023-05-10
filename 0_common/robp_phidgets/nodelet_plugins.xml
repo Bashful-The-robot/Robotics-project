@@ -1,0 +1,39 @@
+<library path="lib/librobp_phidgets_logging_nodelet">
+	<class name="robp_phidgets/LoggingNodelet" type="robp::phidgets::LoggingNodelet" base_class_type="nodelet::Nodelet">
+		<description>
+  		robp_phidgets logging nodelet.
+		</description>
+	</class>
+</library>
+
+<library path="lib/librobp_phidgets_motors_nodelet">
+	<class name="robp_phidgets/MotorsNodelet" type="robp::phidgets::MotorsNodelet" base_class_type="nodelet::Nodelet">
+		<description>
+  		robp_phidgets motor nodelet.
+		</description>
+	</class>
+</library>
+
+<library path="lib/librobp_phidgets_encoders_nodelet">
+	<class name="robp_phidgets/EncodersNodelet" type="robp::phidgets::EncodersNodelet" base_class_type="nodelet::Nodelet">
+		<description>
+  		robp_phidgets encoder nodelet.
+		</description>
+	</class>
+</library>
+
+<library path="lib/librobp_phidgets_spatial_nodelet">
+	<class name="robp_phidgets/SpatialNodelet" type="robp::phidgets::SpatialNodelet" base_class_type="nodelet::Nodelet">
+		<description>
+  		robp_phidgets spatial nodelet.
+		</description>
+	</class>
+</library>
+
+<library path="lib/librobp_phidgets_temperature_nodelet">
+	<class name="robp_phidgets/TemperatureNodelet" type="robp::phidgets::TemperatureNodelet" base_class_type="nodelet::Nodelet">
+		<description>
+  		robp_phidgets temperature nodelet.
+		</description>
+	</class>
+</library>

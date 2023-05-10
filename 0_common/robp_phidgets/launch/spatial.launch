@@ -1,0 +1,20 @@
+<launch>
+  <arg name="manager" default="spatial_manager" doc="Nodelet manager for this nodelet" />
+
+  <arg name="port" default="0"/>
+
+  <group if="$(eval 'spatial_manager' == manager)">
+    <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+  </group>
+
+  <node pkg="nodelet" type="nodelet" name="SpatialNodelet" args="load robp_phidgets/SpatialNodelet $(arg manager)" output="screen">
+    <remap from="~data_raw" to="/imu/data_raw"/>
+    <remap from="~mag" to="/imu/mag"/>
+    <remap from="~calibrate" to="/imu/calibrate"/>
+    <param name="port" value="$(arg port)"/>
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="ImuFilterNodelet" args="load imu_filter_madgwick/ImuFilterNodelet $(arg manager)" output="screen">
+    <param name="use_mag" value="true"/>
+  </node>
+</launch>

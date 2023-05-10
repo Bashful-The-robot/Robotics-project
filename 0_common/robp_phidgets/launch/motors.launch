@@ -1,0 +1,17 @@
+<launch>
+	<arg name="manager" default="motor_manager" doc="Nodelet manager for this nodelet" />
+
+	<arg name="left_port" default="4"/>
+	<arg name="right_port" default="2"/>
+
+	<group if="$(eval 'motor_manager' == manager)">
+		<node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+	</group>
+
+	<node pkg="nodelet" type="nodelet" name="MotorsNodelet" args="load robp_phidgets/MotorsNodelet $(arg manager)" output="screen">
+		<remap from="~duty_cycles" to="/motor/duty_cycles"/>
+		<remap from="~current_duty_cycles" to="/motor/current_duty_cycles"/>
+		<param name="left_port" value="$(arg left_port)"/>
+		<param name="right_port" value="$(arg right_port)"/>
+	</node>
+</launch>

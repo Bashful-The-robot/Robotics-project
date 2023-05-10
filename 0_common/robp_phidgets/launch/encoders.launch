@@ -1,0 +1,16 @@
+<launch>
+	<arg name="manager" default="encoder_manager" doc="Nodelet manager for this nodelet" />
+
+	<arg name="left_port" default="4"/>
+	<arg name="right_port" default="2"/>
+
+	<group if="$(eval 'encoder_manager' == manager)">
+		<node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+	</group>
+
+	<node pkg="nodelet" type="nodelet" name="EncodersNodelet" args="load robp_phidgets/EncodersNodelet $(arg manager)" output="screen">
+		<remap from="~encoders" to="/motor/encoders"/>
+		<param name="left_port" value="$(arg left_port)"/>
+		<param name="right_port" value="$(arg right_port)"/>
+	</node>
+</launch>

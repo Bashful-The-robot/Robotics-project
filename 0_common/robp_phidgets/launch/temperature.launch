@@ -1,0 +1,14 @@
+<launch>
+	<arg name="manager" default="temperature_manager" doc="Nodelet manager for this nodelet" />
+
+	<arg name="port" default="0"/>
+
+	<group if="$(eval 'temperature_manager' == manager)">
+		<node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+	</group>
+
+	<node pkg="nodelet" type="nodelet" name="TemperatureNodelet" args="load robp_phidgets/TemperatureNodelet $(arg manager)" output="screen">
+		<remap from="~temperature" to="/imu/temperature"/>
+		<param name="port" value="$(arg port)"/>
+	</node>
+</launch>

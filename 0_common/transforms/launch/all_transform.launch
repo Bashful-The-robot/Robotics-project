@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+
+<launch>
+ <include file="$(find robp_phidgets)/launch/phidgets.launch">
+ </include> 
+
+ <node pkg="tf2_ros" type="static_transform_publisher" name="base_camera" args="0.096 0.035 0.104 0 0 0 base_link camera_link"/>
+ 
+ <node name="usb_cam" pkg="usb_cam" type="usb_cam_node">
+    <param name="video_device" value="/dev/v4l/by-id/usb-Image_Processor_USB_2.0_PC_Cam-video-index0" />
+    <param name="image_width" value="640" />
+    <param name="image_height" value="480" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="color_format" value="yuv422p" />
+    <param name="camera_frame_id" value="usb_cam" />
+    <param name="io_method" value="mmap"/>
+  </node>
+  
+	<include file="$(find depthimage_to_laserscan)/launch/launchfile_sample.launch">
+ 	<param name="video_device" value="/dev/video6" />
+ </include> 
+ <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+   <arg name="filters" value="pointcloud"/>
+   <arg name="unite_imu_method" value="linear_interpolation"/>
+   <param name="color_width" value="640" />
+   <param name="color_height" value="480" />
+   <param name="color_fps" value="30" />
+   <arg name="gyro_fps"            value="400"/>
+   <arg name="accel_fps"           value="100"/>
+   <arg name="enable_gyro"         value="true"/>
+   <arg name="enable_accel"        value="true"/>
+   
+</include>
+
+ <include file="$(find joy)/launch/joy.launch">
+ </include>
+
+ <include file="$(find joy_to_twist)/launch/joy_to_twist.launch">
+ </include>
+
+ <node pkg="pi_controller" type="pi_controller.py" name="pi_controller"/>
+
+
+ <node pkg="all_transforms" type="odometry.py" name="odometry"/>
+ 
+ <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d /home/robot/dd2419_ws/src/rviz/frameFinder.rviz"/>
+
+	<!-- In meter -->
+	<arg name="marker_size" default="0.05"/>
+	<arg name="camera" default="camera"/>
+	<!-- Frame in which the marker pose will be refered -->
+	<arg name="reference_frame" default=""/>
+	<arg name="camera_frame" default="camera_color_optical_frame"/>
+	<arg name="image_is_rectified" default="True"/>
+
+	<group ns="$(arg camera)">
+		<node name="aruco" pkg="aruco_ros" type="marker_publisher">
+			<remap from="/camera_info" to="/$(arg camera)/color/camera_info"/>
+			<remap from="/image" to="/$(arg camera)/color/image_raw"/>
+
+			<param name="image_is_rectified" value="$(arg image_is_rectified)"/>
+			<param name="marker_size" value="$(arg marker_size)"/>
+			<param name="reference_frame" value="$(arg reference_frame)"/>
+			<param name="camera_frame" value="$(arg camera_frame)"/>
+		</node>
+	</group>
+
+	<arg name="markerId" default="500"/>
+	<arg name="markerSize2" default="0.08"/> 
+	<arg name="marker_frame" default="marker_frame"/>
+	<arg name="ref_frame" default=""/> 
+	<arg name="corner_refinement" default="LINES" /> 
+
+	<node pkg="aruco_ros" type="single" name="aruco_single">
+		<remap from="/camera_info" to="/camera/color/camera_info" />
+		<remap from="/image" to="/camera/color/image_raw" />
+		<param name="image_is_rectified" value="True"/>
+		<param name="marker_size" value="$(arg markerSize2)"/>
+		<param name="marker_id" value="$(arg markerId)"/>
+		<param name="reference_frame" value="$(arg ref_frame)"/> 
+		<param name="camera_frame" value="camera_color_optical_frame"/>
+		<param name="marker_frame" value="$(arg marker_frame)" />
+		<param name="corner_refinement" value="$(arg corner_refinement)" />
+	</node>
+
+ <include file="$(find localization)/launch/localization.launch">
+ </include>
+
+ <include file="$(find SLAM)/launch/slam.launch"> 
+ </include>
+
+
+</launch>

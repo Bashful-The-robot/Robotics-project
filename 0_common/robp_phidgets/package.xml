@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>robp_phidgets</name>
+  <version>1.0.0</version>
+  <description>The robp_phidgets package</description>
+
+  <maintainer email="dduberg@kth.se">Daniel Duberg</maintainer>
+
+  <license>MIT</license>
+
+  <url type="website">https://github.com/KTH-CAS-UAV/robp_phidgets</url>
+
+  <author email="dduberg@kth.se">Daniel Duberg</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>angles</depend>
+  <depend>dynamic_reconfigure</depend>
+  <exec_depend>imu_filter_madgwick</exec_depend>
+  <build_depend>nodelet</build_depend>
+  <exec_depend>nodelet</exec_depend>
+  <depend>robp_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>roslaunch</depend>
+  <depend>roslib</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <export>
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+  </export>
+</package>
