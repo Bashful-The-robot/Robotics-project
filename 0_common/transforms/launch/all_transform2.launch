@@ -84,7 +84,7 @@
  <include file="$(find path_follower)/launch/path_follower.launch">
  </include>
  
- <include file="$(find path_generation)/launch/path_generation.launch">
+ <include file="$(find path_generation)/launch/path_tester3.launch">
  </include>
 
  <node pkg="armpi" type="ik_controller2.py" name="ik_controller"/>

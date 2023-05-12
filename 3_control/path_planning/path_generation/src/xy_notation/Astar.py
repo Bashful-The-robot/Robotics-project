@@ -33,8 +33,8 @@ class Astar:
         self.grid = grid                            #The entire grid
         self.height = grid.shape[0] 
         self.width = grid.shape[1]
-        # print("height,y:   " + str(self.height))
-        # print("width, x:   " + str(self.width))
+        print("height,y:   " + str(self.height))
+        print("width, x:   " + str(self.width))
 
         self.resolution = grid_data[0]
         self.xmin = grid_data[1]
@@ -55,8 +55,8 @@ class Astar:
                 cond_x = (x >= 0 and x < self.width)            #Inside gridmap (origin in (0,0))
                 cond_y = (y >=0 and y < self.height)    
 
-                if cond_x and cond_y and self.grid[y,x] <= 90:  #Inside the gridmap and not occupied
-                    neighbors[Node(x,y)] = self.grid[y,x]
+                if cond_x and cond_y and self.grid[x,y] <= 90:  #Inside the gridmap and not occupied
+                    neighbors[Node(x,y)] = self.grid[x,y]
 
         return neighbors
     
@@ -83,7 +83,7 @@ class Astar:
         closed_list = []
 
         try:
-            if self.grid[goal.y][goal.x]== 100:                             #Goal is on obstacles       
+            if self.grid[goal.x,goal.y] == 100:                             #Goal is on obstacles       
                 print("Unvalid goal position")
                 return None
 
@@ -153,8 +153,8 @@ class Astar:
 
         #Checks if the point is inside the polygon 
         x_m,y_m = self.convert_to_map(Node(points[0],points[1]))
-        point = Point(x_m,y_m)
-        #point = Point(points[0], points[1])
+        point = Point(x_m, y_m)
+        point = Point(points[0], points[1])
         if self.poly.contains(point):
             print("------------------------------")
             return Node(points[0],points[1])
@@ -163,8 +163,10 @@ class Astar:
             
     
     def get_explorerNode(self):
-        y,x = np.where(self.grid== int(-1)) #All the grid-coordinates referring to a cell value of -1
-        #print(self.isInsideWS([x[0],y[0]]))
+        x,y = np.where(self.grid== int(-1)) #All the grid-coordinates referring to a cell value of -1
+        print("HERE")
+        print(x[0])
+        print(y[0])
         # print(self.isInsideWS([x[10],y[10]]))
         # print(self.isInsideWS([x[5031],y[5031]]))
         # print(self.isInsideWS([x[1000],y[1000]]))

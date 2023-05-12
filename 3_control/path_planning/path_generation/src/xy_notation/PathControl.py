@@ -19,8 +19,8 @@ import tf2_geometry_msgs
 import ros_numpy
 import numpy as np
 import math
+#from robp_msgs.msg import DutyCycles        #CHANGE
 from robp_msgs.msg import flags
-
 # How to test exploring:
 #Publish a -1 to topic \pathMission. 
 #In the callback we'll then call the function 'gotoUnexplored'
@@ -45,7 +45,7 @@ class PathControl:
         self.targetPos = None       #Can be goal or something else (explorer, origin)
         self.current_pos = None
         self.dist = 0.15            #Current position should be at least 15 cm from target position after path planning
-        self.ToDoMsg = int(-1)      #Keep track of which tasks to do, explorer mode by default
+        self.ToDoMsg = int(-1)     #Keep track of which tasks to do, explorer mode by default
         self.stopMotors =False
         self.geofence_points = None
         self.unreachableExplorerPoints = []     #Points that the explorer mode will avoid
@@ -61,37 +61,16 @@ class PathControl:
         
         #Subscribers
         rospy.Subscriber('/occupancyGridUpdate',OccupancyGrid, self.grid_callback)
-        #rospy.Subscriber('/target_pos',PoseStamped, self.target_callback)                 #delete
+        rospy.Subscriber('/target_pos',PoseStamped, self.target_callback)                 #delete
         rospy.Subscriber('/state/cov', PoseWithCovarianceStamped, self.current_callback)    
-        #rospy.Subscriber('/pathMission', Int8, self.mission_callback)                   #delete
+        rospy.Subscriber('/pathMission', Int8, self.mission_callback)                   #delete
         rospy.Subscriber('/geofence', MarkerArray, self.geofence_callback)
-        rospy.Subscriber('/system_flags', flags, self.target_mission_callback)
-
+        rospy.Subscriber('/system_flags', flags, self.toDo_callback)
         #Publisher
         self.pubPath = rospy.Publisher('/path',Path,queue_size=10)
-        #self.pubSignal = rospy.Publisher('explorerDone', Bool, queue_size=2)
-        self.pubSignal = rospy.Publisher('/system_flags', flags, queue_size=2)
+        self.pubSignal = rospy.Publisher('explorerDone', Bool, queue_size=2)
 
     ###     Callbacks   ###
-    def target_mission_callback(self,msg):
-        self.mission = msg.path_gen_mission
-        self.goal =msg.target.position
-        #self.goal =msg.target.pose.position
-
-        if self.mission != None and self.astarObj != None:
-            if self.mission == int(-1):   #Explorer mode
-                self.gotoUnexplored()
-                
-            elif self.mission == int(1):    #Receive goal
-                self.path_planning()
-
-            elif self.mission == 0:       #Landmark
-                goal = Node(0,0)          #Goal is origin in map
-                self.path_planning(goal)
-
-            #else: do nothing 
-
-
     def geofence_callback(self,msg):
         self.geofence_msg = msg
         self.geofence_points = [(point.x, point.y) for point in msg.markers[0].points]
@@ -127,7 +106,7 @@ class PathControl:
         if len(self.unreachableExplorerPoints) >0:
             for node in self.unreachableExplorerPoints:
                 x,y = node.x,node.y
-                self.grid[y][x] = 100           #Making sure that unreachable points won't be explored
+                self.grid[x][y] = 100           #Making sure that unreachable points won't be explored
 
         if self.geofence_points != None:
             new_grid = np.full(self.grid.shape,100)
@@ -135,7 +114,7 @@ class PathControl:
             self.grid_geofence_points = list(sum(self.grid_geofence_points, ()))     
             r, c = polygon(self.grid_geofence_points[1::2], self.grid_geofence_points[::2])
             new_grid[r,c] = self.grid[r, c] 
- 
+            print(new_grid)
             #print("------------")
             # print(new_grid[16][131])
             # print(new_grid.shape[0])
@@ -146,16 +125,41 @@ class PathControl:
             #new_grid = new_grid.transpose()
             #print("second")
             #print(new_grid.shape[0])
-      
-            # plt.imshow(new_grid, cmap='gray', origin='lower')
-            # plt.title('New Grid')
-            # plt.colorbar()
-            # plt.show()
-            #y= 46, x = 92
+            new_grid[0][2] = 0       
+            plt.imshow(new_grid, cmap='gray', origin='lower')
+            plt.title('New Grid')
+            plt.colorbar()
+            plt.show()
+            #X=46,Y=92
             data = [self.resolution,self.xmin,self.ymin]
             self.astarObj = Astar(new_grid,data,self.geofence_points)
 
 
+    def target_callback(self,msg):        
+        self.goal =msg.pose.position
+
+    def toDo_callback(self,msg):    
+        #Differentiates between explorer mode and ordinary path planning
+        self.ToDoMsg = msg.path_gen_mission
+        self.goal =msg.target.position
+
+    def mission_callback(self,msg):    
+        self.mission = msg.data
+        
+        if self.mission != None and self.astarObj != None:
+            if self.mission == int(-1):   #Explorer mode
+                print("Mission received")
+                self.gotoUnexplored()
+                
+            elif self.mission == int(1):    #Receive goal
+                self.path_planning()
+
+            elif self.mission == 0:       #Landmark
+                goal = Node(0,0)          #Goal is origin in map
+                self.path_planning(goal)
+
+            else:
+                print("Should not end up here")
 
 
 
@@ -242,18 +246,36 @@ class PathControl:
             explorerGoal = node
             self.path_planning(explorerGoal)
         else:   #done with exploring -> publish a signal
-            print("Done with exploring")
+            print("returned None")
             self.publishMsg()
 
     def publishMsg(self):   
         #Publishes a msg when done with exploring
-        msg = flags()
-        msg.explorer = True
+        msg = Bool()
+        msg.data = True
         self.pubSignal.publish(msg)
         
     def explorer_mode(self):
         element = self.astarObj.get_explorerNode()
 
+
+        ##Grid function
+    #def polyGridMesh(self):
+        #points = [3,5,7,8,9,5]
+     #   r, c = polygon(points[1::2], points[::2])
+      #  self.grid[r, c]
+       # return self.grid
+        #Plot merged grid
+        # plt.imshow(mask, cmap='gray', origin='lower')
+        # plt.title('Merged Grid')
+        # plt.show()
+        # return mask
+        # plt.imshow(self.grid, cmap='gray', origin='lower')
+        # plt.title('Original Occupancy Grid')
+        # plt.show()
+
+
+        # return mask
                         
 if __name__ == '__main__':
     rospy.init_node('path_control')

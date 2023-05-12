@@ -2,5 +2,4 @@
 <launch>
   <node pkg="path_generation" name="toDo" type="publisher0.py" output="screen"/>
   <node pkg="path_generation" name="path_control" type="PathControl.py" output="screen"/>
-    <node pkg="path_generation" name="plot_path" type="pathcheck.py" output="screen"/>
 </launch>
