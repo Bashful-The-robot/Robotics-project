@@ -164,11 +164,9 @@ class object_detect:
                     self.marker_pub.publish(self.marker_array)
                 
 
-
     def callback_usb(self, msg: Img_msgu, msgi:Cam_infou):
         
         cv_image = self.bridge.imgmsg_to_cv2(msg, "rgb8")
-        #cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         
         cv_image = cv2.resize(cv_image, (640,480))
         
@@ -229,38 +227,6 @@ class object_detect:
             pm.point.z = 0
 
             print([cat, [pm.point.x, pm.point.y]])
-            #print(f' USB CAM INFO {pm}')
-
-            #do_trans = tf2_geometry_msgs.do_transform_point(pm, basView)   
-
-            #d = (do_trans.point.position.z)/pos_msg[2]
-            #x = pos_msg[0]*d
-            #y = pos_msg[1]*d
-            #z = 0
-
-            # marker = Marker()
-            # marker.header.frame_id = "map"
-            # marker.header.stamp = rospy.Time.now()
-            # marker.ns = "object"
-            # marker.id = cat
-            # marker.pose.position.x = x
-            # marker.pose.position.y = y
-            # marker.pose.position.z = z
-            # marker.pose.orientation.x = 0
-            # marker.pose.orientation.y = 0
-            # marker.pose.orientation.z = 0
-            # marker.pose.orientation.w = 1
-
-            # marker.scale.x = 0.05
-            # marker.scale.y = 0.05
-            # marker.scale.z = 0.05
-            # marker.color.a = 1.0
-            # marker.color.r = 1.0
-            # marker.color.g = 1.0
-            # marker.color.b = 1.0
-            
-            # marker.type = Marker.CUBE
-            # marker.action = Marker.ADD
 
             self.pusb.publish(pm)
 
@@ -269,12 +235,6 @@ class object_detect:
         
     
     def callback(self, msg: Img_msg, msgd: Img_msg, msgi: Cam_info):
-
-        #transforming
-        #self.Pin.fromCameraInfo(msgi)
-
-        # if not self.buffer.can_transform("map",msg.header.frame_id, msg.header.stamp):
-        #     return
         
         try: 
             mapView = self.buffer.lookup_transform("map",msg.header.frame_id, msg.header.stamp)
@@ -399,7 +359,8 @@ class object_detect:
                     continue
                 
                 #filter if categories are the same, look if x,y and then z is close enough. 
-
+                # if tempsort[i][0] in self.memorycat:
+                #     continue
                 if tempsort[i][0] == tempsort[i-1][0]:
                     if np.logical_or(abs(tempsort[i][1] - tempsort[i-1][1])>1,
                                         abs(tempsort[i][2] - tempsort[i-1][2])>1):
@@ -453,6 +414,14 @@ class object_detect:
             
         print(i)
         print(f'a new match? {tempsort[i-1][4]}')
+
+        if tempsort[i-1][4] > 50:
+            self.temp = []
+            i = 0
+            self.j = 0 
+            tempsort.pop(i-1)
+            return tempsort
+        
         if tempsort[i-1][4] >= 4 and tempsort[i-1][4] < 6:
             print("OMG A SURE MATCH")
 
@@ -503,8 +472,8 @@ class object_detect:
                 else: 
                     catname = self.catdict[cat]
                     
-                cv2.imwrite("{}_0.png".format(catname), out_image)
-            
+                cv2.imwrite("{}_0.png".format(catname), cv2.cvtColor(out_image, cv2.COLOR_RGB2BGR))
+
                 #new_pos = np.array([pos_msg[0]*d,pos_msg[1]*d, pos_msg[2]*(d*1.5)], dtype=float)
 
                 self.memory.append([cat, [x,y,z]])
@@ -515,11 +484,12 @@ class object_detect:
     
     def process_color(self, out_image):
         hsv = cv2.cvtColor(out_image, cv2.COLOR_RGB2HSV) #wrong
-        min_green = np.array([50,220,220]) 
-        max_green = np.array([60,255,255]) 
-        min_red = np.array([170,220,220]) 
+        print(f'THE COLOR ARRAY {hsv}')
+        min_green = np.array([40,50,50]) 
+        max_green = np.array([70,255,255]) 
+        min_red = np.array([120,50,70]) 
         max_red = np.array([180,255,255]) 
-        min_blue = np.array([110,220,220]) 
+        min_blue = np.array([70,50,50]) 
         max_blue = np.array([120,255,255]) 
         
         mask_g = cv2.inRange(hsv, min_green, max_green) 
@@ -538,33 +508,6 @@ class object_detect:
             return "red"
         else:
             return "beige"
-        
-    def read_depth_as_floor_depth(self, x, y):  # (int, int) -> float
-        print('Fallback to floor model')
-        min_distance = 10.0
-        
-        # Extend the camera ray until it passes through where the floor should be. Use its length as the depth.
-        camera_origin = PointStamped()
-        camera_origin.header.frame_id = self.camera_model.tfFrame()
-        camera_origin.point.x, camera_origin.point.y, camera_origin.point.z = 0.0, 0.0, 0.0
-        point_along_ray = PointStamped()
-        point_along_ray.header.frame_id = self.camera_model.tfFrame()
-        point_along_ray.point.x, point_along_ray.point.y, point_along_ray.point.z = self.camera_model.projectPixelTo3dRay((x, y))
-
-        self.tf_listener.waitForTransform('base_footprint', self.camera_model.tfFrame(), rospy.Time(rospy.get_time()), rospy.Duration(1))
-        camera_origin = self.tf_listener.transformPoint('base_footprint', camera_origin)
-        point_along_ray = self.tf_listener.transformPoint('base_footprint', point_along_ray)
-
-        camera_origin = np_from_poinstamped(camera_origin)
-        point_along_ray = np_from_poinstamped(point_along_ray)
-        ray_dir = point_along_ray - camera_origin
-        # Assuming this transformation was orthogonal, |ray_dir| = 1, at least approximately
-        d = camera_origin[1]/max(-ray_dir[1], camera_origin[1]/min_distance)
-        
-        if d <= 0.01:
-            d = np.nan
-        
-        return d
     
     def rVizFunc(self, new_list):
         self.marker_array = MarkerArray()
@@ -616,7 +559,7 @@ class object_detect:
                 self.marker_array.markers.append(marker)
 
                 marklist.append([cat,i])
-        #print(self.marker_array)
+
         self.marker_pub.publish(self.marker_array)
 
     def run(self):
