@@ -50,6 +50,8 @@ class Workspace:
         self.oldGrid = None
         self.angleMapOdom = None
         self.prevGrid = None
+        self.occGrid = None
+        self.occMask = None
         
         self.workspace_seen = False
         self.boundary = False
@@ -62,7 +64,7 @@ class Workspace:
         self.workspacePoints = []
         self.cubePose = []
         self.cubePose = []
-
+    
         self.rate = rospy.Rate(10)
         
 
@@ -157,6 +159,9 @@ class Workspace:
 
             xgrid = math.ceil((xRob-self.xmin)/(self.xmax-self.xmin)*self.width)
             ygrid = math.ceil((yRob-self.ymin)/(self.ymax-self.ymin)*self.height)
+            #gridrayStart
+            xRayStart = math.ceil((xRob+0.2-self.xmin)/(self.xmax-self.xmin)*self.width)
+            yRayStart = math.ceil((yRob+0.2-self.ymin)/(self.ymax-self.ymin)*self.height)
 
             self.rangeMaxed = False
             
@@ -172,10 +177,15 @@ class Workspace:
                         ranges[i] = maxrange
 
                     x = xRob + ranges[i]*cos(angMin + (dTheta*i) + self.angleMapOdom)
+                    xRayStart = xRob + 0.3*cos(angMin + (dTheta*i) + self.angleMapOdom)
                     xRay = math.ceil((x-self.xmin)/(self.xmax-self.xmin)*self.width)
 
                     y = yRob + ranges[i]*sin(angMin + (dTheta*i) + self.angleMapOdom)
+                    yRayStart = yRob + 0.3*sin(angMin + (dTheta*i) + self.angleMapOdom)
                     yRay = math.ceil((y-self.ymin)/(self.ymax-self.ymin)*self.height)
+
+                    xRayStart = math.ceil((xRayStart-self.xmin)/(self.xmax-self.xmin)*self.width)
+                    yRayStart = math.ceil((yRayStart-self.ymin)/(self.ymax-self.ymin)*self.height)
 
                     if not self.rangeMaxed and self.grid_data[xRay,yRay] != 101 :
                         self.grid_data[xRay,yRay] = 100
@@ -184,7 +194,9 @@ class Workspace:
                         self.grid_data[xRay,yRay] = 0
                         self.rangeMaxed = False
 
-                    self.raytrace((xgrid,ygrid),(xRay,yRay))
+                    #self.raytrace((xgrid,ygrid),(xRay,yRay))
+                    self.raytrace((xRayStart,yRayStart),(xRay,yRay))
+
 
         except:
             print("Error: ", sys.exc_info()[0])
@@ -216,7 +228,7 @@ class Workspace:
             traversed.append((int(x), int(y)))
             #if self.grid_data[x,y] != 101:
             #if self.grid_data[x,y] < 1 and [x,y] not in self.cubePose:
-            if [x,y] not in self.cubePose:
+            if [x,y] not in self.cubePose and self.grid_data[x,y]<10:
                 self.grid_data[x,y] = 0
 
             if error > 0:
@@ -227,7 +239,7 @@ class Workspace:
                     traversed.append((int(x + x_inc), int(y)))
                     #if self.grid_data[x+x_inc,y] != 101:
                     #if self.grid_data[x,y] < 1 and [x,y] not in self.cubePose:
-                    if [x,y] not in self.cubePose:
+                    if [x,y] not in self.cubePose and self.grid_data[x,y]<10:
                         self.grid_data[x + x_inc,y] = 0
                 y += y_inc
                 error += dx
@@ -367,17 +379,21 @@ class Workspace:
 
             grid_data = np.zeros((self.width, self.height))
             grid_data -= 1
+            self.occGrid = np.zeros((self.width, self.height))
             self.grid_available = True
             self.boundary = True
-            self.grid_data = grid_data    
+            self.grid_data = grid_data
+            for i in range(len(self.workspacePoints) -1):
 
+                        self.occGrid = self.lineAlgorithm(self.workspacePoints[i][0],self.workspacePoints[i][1],self.workspacePoints[i+1][0],self.workspacePoints[i+1][1],self.occGrid)    
+            self.occMask = self.occGrid!= 0
     
-        if self.grid_available:
-                for i in range(len(self.workspacePoints) -1):
-
-                        self.grid_data = self.lineAlgorithm(self.workspacePoints[i][0],self.workspacePoints[i][1],self.workspacePoints[i+1][0],self.workspacePoints[i+1][1],self.grid_data)
+        #if self.grid_available:
+        #        for i in range(len(self.workspacePoints) -1):
+#
+        #                self.grid_data = self.lineAlgorithm(self.workspacePoints[i][0],self.workspacePoints[i][1],self.workspacePoints[i+1][0],self.workspacePoints[i+1][1],self.grid_data)
         
-
+        self.grid_data[self.occMask]=100
         for i in range(len(self.cubePose)):
             
             self.grid_data[int(self.cubePose[i][0]),int(self.cubePose[i][1])] = 100
