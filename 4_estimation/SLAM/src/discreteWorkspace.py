@@ -339,6 +339,13 @@ class Workspace:
 
                 grid_data[x,y] = 100
                 error += abs(delta_y) if is_steep else abs(delta_x)
+
+                for adj_x in range(x - 1, x + 2):
+                    for adj_y in range(y - 1, y + 2):
+                        if adj_x >= 0 and adj_x < grid_data.shape[0] and adj_y >= 0 and adj_y < grid_data.shape[1]:
+                            if grid_data[adj_x, adj_y] != 100:
+                                grid_data[adj_x, adj_y] = 100
+
                 if error * 2 >= (abs(delta_y) if is_steep else abs(delta_x)):
                     if is_steep:
                         y += sign(delta_y)
@@ -392,7 +399,7 @@ class Workspace:
 
     # Set the mean value to a high value
         mean_value = 100
-        gaussian_grid = gaussian_grid * mean_value + (1 - gaussian_grid) * 1
+        gaussian_grid = gaussian_grid * mean_value + (1 - gaussian_grid) * 1.5
 
     # Cap the maximum value to 101
         gaussian_grid= self.grid_data + gaussian_grid
