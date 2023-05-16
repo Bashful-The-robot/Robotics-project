@@ -12,7 +12,7 @@ import numpy as np
 class GENPATH:
     def __init__(self) -> None:
         rospy.init_node('path_generator_node')
-        self.path_pub = rospy.Publisher('/path', Path, queue_size=10)
+        self.path_pub = rospy.Publisher('/path', Path, queue_size=1)
         self.rate = rospy.Rate(10)  # publish at 1 Hz
         rospy.Subscriber('/marker2', MarkerArray, self.callback)
         rospy.Subscriber('/state/cov', PoseWithCovarianceStamped, self.callback_stat)

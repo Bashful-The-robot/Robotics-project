@@ -55,7 +55,7 @@ class Astar:
                 cond_x = (x >= 0 and x < self.width)            #Inside gridmap (origin in (0,0))
                 cond_y = (y >=0 and y < self.height)    
 
-                if cond_x and cond_y and self.grid[y,x] <= 90:  #Inside the gridmap and not occupied
+                if cond_x and cond_y and self.grid[y,x] <= 20:  #Inside the gridmap and not occupied
                     neighbors[Node(x,y)] = self.grid[y,x]
 
         return neighbors
@@ -152,12 +152,12 @@ class Astar:
     def isInsideWS(self,points):
 
         #Checks if the point is inside the polygon 
-        x_m,y_m = self.convert_to_map(Node(points[0],points[1]))
+        x_m,y_m = self.convert_to_map(points)
         point = Point(x_m,y_m)
         #point = Point(points[0], points[1])
         if self.poly.contains(point):
             print("------------------------------")
-            return Node(points[0],points[1])
+            return points
         else:
             return None
             

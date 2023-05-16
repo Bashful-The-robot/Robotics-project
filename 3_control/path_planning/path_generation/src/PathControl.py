@@ -60,7 +60,7 @@ class PathControl:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         
         #Subscribers
-        rospy.Subscriber('/occupancyGridUpdate',OccupancyGrid, self.grid_callback)
+        rospy.Subscriber('/occupancyGridUpdate',OccupancyGrid, self.grid_callback,queue_size=1)
         #rospy.Subscriber('/target_pos',PoseStamped, self.target_callback)                 #delete
         rospy.Subscriber('/state/cov', PoseWithCovarianceStamped, self.current_callback)    
         #rospy.Subscriber('/pathMission', Int8, self.mission_callback)                   #delete
@@ -85,10 +85,10 @@ class PathControl:
             elif self.mission == int(1):    #Receive goal
                 self.path_planning()
 
-            elif self.mission == 0:       #Landmark
-                goal = Node(0,0)          #Goal is origin in map
-                self.path_planning(goal)
-
+            elif self.mission == int(2):       #Landmark
+                #goal = Node(0,0)          #Goal is origin in map
+                #self.path_planning(goal)
+                self.path_planning()
             #else: do nothing 
 
 
@@ -225,15 +225,15 @@ class PathControl:
                     rospy.loginfo("Goal position was unreachable")
                 
 
-    def atGoal(self,goal):      
-        isClose = False
-        if goal == 0:
-            goal = Node(0,0)
-        closeInX = math.isclose(goal.x,self.current_pos.x,abs_tol=self.dist)
-        closeInY = math.isclose(goal.y,self.current_pos.y,abs_tol=self.dist)
-        if closeInX and closeInY:
-            isClose = True                                              #True if at goal
-        return isClose
+    # def atGoal(self,goal):      
+    #     isClose = False
+    #     if goal == 0:
+    #         goal = Node(0,0)
+    #     closeInX = math.isclose(goal.x,self.current_pos.x,abs_tol=self.dist)
+    #     closeInY = math.isclose(goal.y,self.current_pos.y,abs_tol=self.dist)
+    #     if closeInX and closeInY:
+    #         isClose = True                                              #True if at goal
+    #     return isClose
     
         ####        Exploring functions      ###
     def gotoUnexplored(self):
