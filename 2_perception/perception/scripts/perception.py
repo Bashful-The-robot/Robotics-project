@@ -57,10 +57,10 @@ def projectPixelTo3dRayUSB(camerainfo, uv):
 
     
     
-    #P = np.array(camerainfo.P).reshape(3,4)
-    P = np.array([[517.03632655, 0, 312.03052029],
-         [0, 516.70216219, 252.01727667],
-         [0, 0, 1]])
+    P = np.array(camerainfo.P).reshape(3,4)
+    # P = np.array([[517.03632655, 0, 312.03052029],
+    #      [0, 516.70216219, 252.01727667],
+    #      [0, 0, 1]])
     
     fx = P[0,0]
     fy = P[1,1]
@@ -178,7 +178,7 @@ class object_detect:
 
         with torch.inference_mode():
             out = self.detector(image)#.cpu()
-        bbs = Detector.decode_output(out, self.THRESHOLD-0.5)[0]
+        bbs = Detector.decode_output(out, self.THRESHOLD-0.3)[0]
                 
         skor = 0
 
@@ -215,15 +215,18 @@ class object_detect:
 
             pos_msg = projectPixelTo3dRayUSB(msgi, (u,v)) #now in x,y,z relative the camera. 
             
-            len_from_cen = np.sqrt((pos_msg[0]*pos_msg[0])+(pos_msg[1]*pos_msg[1]))
-            dd = 0.23
+            #len_from_cen = np.sqrt((pos_msg[0]*pos_msg[0])+(pos_msg[1]*pos_msg[1]))
+            len_from_cen = 0
+            dd = 0.22
             height = np.sqrt((dd*dd)+(len_from_cen*len_from_cen))
             
             pm = PointStamped()
             pm.header.stamp = msg.header.stamp
             pm.header.frame_id = "base_link" #msg.header.frame_id #"camera_link" 
-            pm.point.x = -pos_msg[0]*height
-            pm.point.y = -pos_msg[1]*height
+            pm.point.x = -pos_msg[1]*height
+            pm.point.y = -pos_msg[0]*height 
+
+            
             pm.point.z = 0
 
             print([cat, [pm.point.x, pm.point.y]])

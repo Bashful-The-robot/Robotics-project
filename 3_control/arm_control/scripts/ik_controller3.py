@@ -118,6 +118,7 @@ class RoboticArm:
         #Align the arm with the target point and  correct the coordinates
         yaw = math.asin(y/x)
         x = math.sqrt(y**2 + x**2)
+        print("x:",x)
         y = 0
         print("first step")
         # Set different orientations of the gripper according to the distance to the object.
@@ -125,7 +126,7 @@ class RoboticArm:
             self.orientation = -0.785
         elif x>250.0/1000 and x<300.0/1000:
             self.orientation = -1.0
-        elif x>=190.0/1000 and x<=300.0/1000:
+        elif x>=190.0/1000 and x<=250.0/1000:
             self.orientation = -1.22
         elif x>=160.0/1000 and x<190.0/1000:
             self.orientation = -1.5708
@@ -135,9 +136,13 @@ class RoboticArm:
         # Calculate the different commands    
         P_x = x - self.length3 * math.cos(self.orientation)
         P_z = z - self.length3 * math.sin(self.orientation)
+        print(P_x)
+        print(self.length3 * math.sin(self.orientation))
+        print(z)
+        print(P_z)
         print("second step")
 
-        self.joint1_angle = yaw
+        self.joint1_angle = yaw - 0.075
         expr = ((P_z**2 + P_x**2) - (self.length1**2 + self.length2**2))/(2*self.length1*self.length2)
         print(expr) 
         self.joint3_angle = - math.acos(((P_z**2 + P_x**2) - (self.length1**2 + self.length2**2))/(2*self.length1*self.length2))
@@ -206,7 +211,7 @@ class RoboticArm:
     
     def return_to_origin (self):
         
-        self.joint1_angle = 0.0
+        self.joint1_angle = -0.075
         self.joint2_angle = 0.5
         self.joint3_angle = -1.35
         self.joint4_angle = -1.76
@@ -216,6 +221,7 @@ class RoboticArm:
         self.command3_duration = abs(self.joint3_angle - self.joint3_state) * self.time_factor 
         self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor
 
+        
         command2 = CommandDuration()
         command2.data = self.joint2_angle
         command2.duration = self.command2_duration
@@ -242,7 +248,7 @@ class RoboticArm:
 
     def go_detect_pos (self):
         
-        self.joint1_angle = 0.0
+        self.joint1_angle = -0.075
         self.joint2_angle = -0.7
         self.joint3_angle = -0.8
         self.joint4_angle = -1.571
@@ -252,17 +258,22 @@ class RoboticArm:
         self.command3_duration = abs(self.joint3_angle - self.joint3_state) * self.time_factor 
         self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor
 
-        command2 = CommandDuration()
-        command2.data = self.joint2_angle
-        command2.duration = self.command2_duration
-        self.joint2_command_pub.publish(command2)
-        rospy.sleep(self.command2_duration/1000)
+        gripper_command = Float64()
+        gripper_command.data = -1.3
+        self.gripper_pub.publish(gripper_command)
+        rospy.sleep(1)
         
         command3 = CommandDuration()
         command3.data = self.joint3_angle
         command3.duration = self.command3_duration
         self.joint3_command_pub.publish(command3)
         rospy.sleep(self.command3_duration/1000)
+
+        command2 = CommandDuration()
+        command2.data = self.joint2_angle
+        command2.duration = self.command2_duration
+        self.joint2_command_pub.publish(command2)
+        rospy.sleep(self.command2_duration/1000)
         
         command4 = CommandDuration()
         command4.data = self.joint4_angle
@@ -280,7 +291,7 @@ class RoboticArm:
 
 if __name__ == '__main__':
     
-    rospy.init_node('ik_controller2') 
+    rospy.init_node('ik_controller3') 
     
     controller = RoboticArm()
     
@@ -296,22 +307,23 @@ if __name__ == '__main__':
             
             if controller.PICK == True:
                 controller.go_detect_pos()
-                rospy.wait_for_message()
-                msg = controller.object_pos_sub.get_lastest_message()
-                controller.calculate_commands(msg.point.x, msg.point.y, 0)
-            try:
-                Pose_aux = PoseStamped()
-                Pose_aux.header.frame_id = 'map'
-                Pose_aux.pose.position.x = controller.target_x
-                Pose_aux.pose.position.y = controller.target_y
-                Pose_aux.pose.position.z = 0
-
-                transform = controller.tf_buffer.lookup_transform('arm','map', rospy.Time(0), rospy.Duration(5.0))
-                pose_transformed = tf2_geometry_msgs.do_transform_pose(Pose_aux, transform)
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-                rospy.logwarn("Failed to transform pose: {e}")
-            print("new position",pose_transformed.pose.position.x, pose_transformed.pose.position.y, pose_transformed.pose.position.z)
-            controller.calculate_commands(pose_transformed.pose.position.x, pose_transformed.pose.position.y, pose_transformed.pose.position.z)
+                msg = rospy.wait_for_message('arm_cam_pos',PointStamped)
+                controller.calculate_commands(msg.point.x + 0.23, msg.point.y, -0.14)
+            
+            elif controller.LEAVE == True:   
+                try:
+                    Pose_aux = PoseStamped()
+                    Pose_aux.header.frame_id = 'map'
+                    Pose_aux.pose.position.x = controller.target_x
+                    Pose_aux.pose.position.y = controller.target_y
+                    Pose_aux.pose.position.z = 0
+    
+                    transform = controller.tf_buffer.lookup_transform('arm','map', rospy.Time(0), rospy.Duration(5.0))
+                    pose_transformed = tf2_geometry_msgs.do_transform_pose(Pose_aux, transform)
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                    rospy.logwarn("Failed to transform pose: {e}")
+                print("new position",pose_transformed.pose.position.x, pose_transformed.pose.position.y, pose_transformed.pose.position.z)
+                controller.calculate_commands(pose_transformed.pose.position.x, pose_transformed.pose.position.y, pose_transformed.pose.position.z)
             
             controller.publish_commands()
 

@@ -26,7 +26,7 @@ catkin_package(
 )
 
 catkin_install_python(PROGRAMS 
-	scripts/ik_controller2.py
+	scripts/ik_controller3.py
 	
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
