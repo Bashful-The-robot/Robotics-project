@@ -87,7 +87,7 @@
  <include file="$(find path_generation)/launch/path_generation.launch">
  </include>
  
-  <node pkg="brain" type="brain4.py" name="brain" output="screen">
+ <node pkg="brain" type="brain4.py" name="brain" output="screen">
  </node>
 
  <node pkg="armpi" type="ik_controller2.py" name="ik_controller"/>

@@ -178,7 +178,7 @@ class object_detect:
 
         with torch.inference_mode():
             out = self.detector(image)#.cpu()
-        bbs = Detector.decode_output(out, self.THRESHOLD-0.3)[0]
+        bbs = Detector.decode_output(out, self.THRESHOLD-0.5)[0]
                 
         skor = 0
 
@@ -217,7 +217,7 @@ class object_detect:
             
             #len_from_cen = np.sqrt((pos_msg[0]*pos_msg[0])+(pos_msg[1]*pos_msg[1]))
             len_from_cen = 0
-            dd = 0.22
+            dd = 0.17
             height = np.sqrt((dd*dd)+(len_from_cen*len_from_cen))
             
             pm = PointStamped()
