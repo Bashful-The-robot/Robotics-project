@@ -79,7 +79,7 @@ class PathControl:
         #self.goal =msg.target.pose.position
 
         if self.mission != None and self.astarObj != None:
-            if self.mission == int(-1):   #Explorer mode
+            if self.mission == int(-2):   #Explorer mode
                 self.gotoUnexplored()
                 
             elif self.mission == int(1):    #Receive goal

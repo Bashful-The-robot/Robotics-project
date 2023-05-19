@@ -20,6 +20,7 @@ class RoboticArm:
         self.START_MISSION = False
         self.PICK = False
         self.LEAVE = False
+        self.SUCCESS = False
        
         # Define the lengths of the three links of the robotic arm
         self.length1 = 101.0/1000
@@ -116,7 +117,7 @@ class RoboticArm:
     def calculate_commands(self, x, y , z):
         
         #Align the arm with the target point and  correct the coordinates
-        yaw = math.asin(y/x)
+        yaw = math.asin(y/x) 
         x = math.sqrt(y**2 + x**2)
         print("x:",x)
         y = 0
@@ -141,23 +142,32 @@ class RoboticArm:
         print(z)
         print(P_z)
         print("second step")
+        if yaw < 0:
+            self.joint1_angle = yaw - 0.05
+            
+        else:
+            self.joint1_angle = yaw - 0.085
 
-        self.joint1_angle = yaw - 0.075
         expr = ((P_z**2 + P_x**2) - (self.length1**2 + self.length2**2))/(2*self.length1*self.length2)
-        print(expr) 
-        self.joint3_angle = - math.acos(((P_z**2 + P_x**2) - (self.length1**2 + self.length2**2))/(2*self.length1*self.length2))
         
-        self.joint2_angle = math.atan2(P_z , P_x) -  math.atan2(self.length2 * math.sin(self.joint3_angle),(self.length1 + self.length2 * math.cos(self.joint3_angle)))
+        if expr <=1:
+            self.joint3_angle = - math.acos(((P_z**2 + P_x**2) - (self.length1**2 + self.length2**2))/(2*self.length1*self.length2))
 
-        self.joint4_angle = self.orientation - (self.joint2_angle + self.joint3_angle)
+            self.joint2_angle = math.atan2(P_z , P_x) -  math.atan2(self.length2 * math.sin(self.joint3_angle),(self.length1 + self.length2 * math.cos(self.joint3_angle)))
 
-        self.joint2_angle -= math.pi/2
-        
-        self.command1_duration = abs(self.joint1_angle - self.joint1_state) * self.time_factor
-        self.command2_duration = abs(self.joint2_angle - self.joint2_state) * self.time_factor
-        self.command3_duration = abs(self.joint3_angle - self.joint3_state) * self.time_factor 
-        self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor 
+            self.joint4_angle = self.orientation - (self.joint2_angle + self.joint3_angle)
 
+            self.joint2_angle -= math.pi/2
+            
+            self.SUCCESS = True
+
+            self.command1_duration = abs(self.joint1_angle - self.joint1_state) * self.time_factor
+            self.command2_duration = abs(self.joint2_angle - self.joint2_state) * self.time_factor
+            self.command3_duration = abs(self.joint3_angle - self.joint3_state) * self.time_factor 
+            self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor 
+
+        else:
+            pass
         
         print("command 1:",self.joint1_angle,"state:",self.command1_duration)
         print("command 2:",self.joint2_angle,"state:",self.command2_duration)
@@ -198,7 +208,7 @@ class RoboticArm:
         if  self.PICK == True and self.LEAVE == False: # Pick object  sequence 
             rospy.sleep(0.5)
             gripper_command = Float64()
-            gripper_command.data = -0.2
+            gripper_command.data = -0.18
             self.gripper_pub.publish(gripper_command)
             rospy.sleep(1)
         elif self.PICK == False and self.LEAVE == True: # Leave object sequence 
@@ -259,7 +269,7 @@ class RoboticArm:
         self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor
 
         gripper_command = Float64()
-        gripper_command.data = -1.3
+        gripper_command.data = -1.8
         self.gripper_pub.publish(gripper_command)
         rospy.sleep(1)
         
@@ -308,7 +318,7 @@ if __name__ == '__main__':
             if controller.PICK == True:
                 controller.go_detect_pos()
                 msg = rospy.wait_for_message('arm_cam_pos',PointStamped)
-                controller.calculate_commands(msg.point.x + 0.23, msg.point.y, -0.14)
+                controller.calculate_commands(msg.point.x + 0.235, msg.point.y, -0.145)
             
             elif controller.LEAVE == True:   
                 try:
@@ -325,20 +335,23 @@ if __name__ == '__main__':
                 print("new position",pose_transformed.pose.position.x, pose_transformed.pose.position.y, pose_transformed.pose.position.z)
                 controller.calculate_commands(pose_transformed.pose.position.x, pose_transformed.pose.position.y, pose_transformed.pose.position.z)
             
-            controller.publish_commands()
+            if controller.SUCCESS == True:
+                controller.publish_commands()
 
-            controller.return_to_origin()
-            
-            if controller.PICK == True: 
-                mission_finished.data = 1
-            elif controller.LEAVE == True:
-                mission_finished.data = 2
-            
-            controller.mission_finished_pub.publish(mission_finished)
-            
-            controller.START_MISSION = False
-            
-            rospy.sleep(1.5)
+                controller.return_to_origin()
+
+                if controller.PICK == True: 
+                    mission_finished.data = 1
+                elif controller.LEAVE == True:
+                    mission_finished.data = 2
+
+                controller.mission_finished_pub.publish(mission_finished)
+
+                controller.START_MISSION = False
+
+                controller.SUCCESS = False
+
+                rospy.sleep(1.5)
         
         controller.mission_finished_pub.publish(mission_finished)
         rate.sleep() 

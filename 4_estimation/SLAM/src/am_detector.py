@@ -9,6 +9,7 @@ from visualization_msgs.msg import Marker
 import tf2_ros
 
 import tf2_geometry_msgs
+import math
 
 class AMdetector:
     def __init__(self):
@@ -39,7 +40,13 @@ class AMdetector:
                 if not self.init_aruco[marker.id]:
                     if marker.pose.pose.position.z <= 1.5:
                         try:
-                            #print("trying")
+                            #           Offset marker!
+                            z=marker.pose.pose.position.z
+                            x=marker.pose.pose.position.x
+                            theta = math.atan2(z,x)
+                            marker.pose.pose.position.z += 0.08*math.sin(theta)
+                            marker.pose.pose.position.x += 0.08*math.cos(theta)
+
                             trans = self.buffer.lookup_transform("map","camera_color_optical_frame", msg.header.stamp, rospy.Duration(0.5))
                             do_trans = tf2_geometry_msgs.do_transform_pose(marker.pose, trans)
                             self.marker = Marker()

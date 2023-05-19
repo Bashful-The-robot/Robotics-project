@@ -6,6 +6,8 @@
 
  <node pkg="tf2_ros" type="static_transform_publisher" name="base_camera" args="0.096 0.035 0.104 0 0 0 base_link camera_link"/>
  
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_arm" args="0.00 -0.045 0.14 0 0 0 base_link arm"/>
+
  <node name="usb_cam" pkg="usb_cam" type="usb_cam_node">
     <param name="video_device" value="/dev/v4l/by-id/usb-Image_Processor_USB_2.0_PC_Cam-video-index0" />
     <param name="image_width" value="640" />
@@ -39,6 +41,8 @@
  </include>
 
  <node pkg="pi_controller" type="pi_controller.py" name="pi_controller"/>
+
+ <node pkg="perception" type="perception.py" name="perception"/>
 
 
  <node pkg="all_transforms" type="odometry.py" name="odometry"/>
@@ -89,5 +93,6 @@
  <include file="$(find SLAM)/launch/slam.launch"> 
  </include>
 
+  <node pkg="armpi" type="ik_controller3.py" name="ik_controller"/>
 
 </launch>

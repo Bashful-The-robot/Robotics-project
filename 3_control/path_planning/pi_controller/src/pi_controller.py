@@ -34,7 +34,7 @@ class CartesianController:
         rospy.Subscriber('/motor/encoders',Encoders,self.encoders_callback)
         rospy.Subscriber('/motor_controller/twist',Twist,self.twist_callback)
         self.duty_cycles_pub=rospy.Publisher('/motor/duty_cycles',DutyCycles)
-    
+
         while not rospy.is_shutdown():
             duty_msg=DutyCycles()
 

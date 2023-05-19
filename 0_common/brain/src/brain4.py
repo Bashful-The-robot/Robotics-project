@@ -17,8 +17,7 @@ from aruco_msgs.msg import MarkerArray, Marker
 #from reactive_sequence import RSequence
 
 ##TO BE CHANGED #CHANGE!!!!! change everything here before starting!!!!!!!!!!!!!!
-stop_distance = 0.2
-
+stop_distance = 0.16
 class Perception(pt.behaviour.Behaviour):
     '''This class finds object pairs'''
     def __init__(self):
@@ -41,6 +40,7 @@ class Perception(pt.behaviour.Behaviour):
         super(Perception,self).__init__()
     def perception_cb(self,msg):
         self.obj_list = []
+        print(f"THIS IS THE LENGTH OF PERCPETION: {len(msg.markers)}")
         for marker in msg.markers:
             #6 cube
             #7 ball
@@ -200,6 +200,8 @@ class Pick(pt.behaviour.Behaviour):
         super(Pick,self).__init__()
         rospy.Subscriber('/arm_motion_complete', Int8, self.arm_status_callback)
         self.arm_status = False
+        self.buffer = tf2_ros.Buffer(rospy.Duration(100))
+        self.listener = tf2_ros.TransformListener(self.buffer)
 
     def arm_status_callback(self,msg):
         self.arm_status = msg.data
@@ -224,6 +226,32 @@ class Pick(pt.behaviour.Behaviour):
             rospy.loginfo("success pick")
             #print("success pick")
             return pt.common.Status.SUCCESS
+        
+        elif self.arm_status < 0 :
+            time = rospy.Time(0)
+            try:
+                trans = self.buffer.lookup_transform("base_link","map", time, rospy.Duration(0.5))
+                do_trans = tf2_geometry_msgs.do_transform_pose(common_dict['pickPose'], trans)
+                if self.arm_status == -1:
+                    do_trans.pose.position.y +=0.05
+
+                elif self.arm_status == -2:
+                    do_trans.pose.position.x += 0.05
+
+                elif self.arm_status == -3:
+                    do_trans.pose.position.y -=0.05
+
+                trans = self.buffer.lookup_transform("map","base_link", time, rospy.Duration(0.5))
+                do_trans2 = tf2_geometry_msgs.do_transform_pose(do_trans, trans)
+                common_dict['path_gen_mission']=1
+                common_dict['arm_mission']=0
+                common_dict['perception']=False
+                common_dict['path_control']=True
+                common_dict['target'] = do_trans2.pose
+                rospy.logwarn("Running pick")
+                return pt.common.Status.RUNNING
+            except:
+                rospy.logwarn("No transform in PICK!")
         else:
             rospy.logerr("failure pick")
             #print("failure pick")
@@ -263,6 +291,13 @@ class Place(pt.behaviour.Behaviour):
             rospy.loginfo("Success place")
             #print("success palce")
             return pt.common.Status.SUCCESS
+        
+        
+        
+        
+        
+        
+        
         else:
             rospy.logerr("Failure place")
             #print("failure palce")
@@ -368,7 +403,7 @@ class CompletedPlaceOrExploration(pt.behaviour.Behaviour):
             common_dict['arm_mission'] = 0
             common_dict['path_gen_mission'] = 0
             common_dict['perception'] = False
-            common_dict['path_control'] = FalseB
+            common_dict['path_control'] = False
             common_dict['target'] = Pose()
             common_dict['pickPose'] = Pose()
             common_dict['placePose'] = Pose()
@@ -386,7 +421,7 @@ class TimeControl(pt.behaviour.Behaviour):
     '''This is for the time limit!'''
     def __init__(self):
         super(TimeControl, self).__init__()
-        self.timeLimit = 2*60 #2 minutes ##TO BE CHANGED
+        self.timeLimit = 20*60 #2 minutes ##TO BE CHANGED
         self.maxTime = rospy.Time.now() + rospy.Duration(self.timeLimit)
     
     def update(self):
@@ -440,6 +475,8 @@ if __name__ == "__main__":
   
     #pub_flags = rospy.Publisher('/system_flags', flags, queue_size=1)
     
+    # NODES ADDED
+
     root = pt.composites.Selector()
     mainfunction = pt.composites.Sequence()
     anchor_or_placed = pt.composites.Selector()
@@ -448,12 +485,18 @@ if __name__ == "__main__":
     #explore_or_see_landmark = pt.composites.Selector()
     new_landmark_procedure = pt.composites.Sequence()
     mission = pt.composites.Sequence()
+    detect_anchor_or_at_goal = pt.composites.Selector()
 
+    # CHILDREN ADDED
+
+    detect_anchor_or_at_goal.add_children([DetectedAnchorAruco(),AtGoal()])
     mission.add_children([AtGoal(),Pick(),AtGoal(),Place()])
-    new_landmark_procedure.add_children([DetectNewLandmark(), AtGoal()])
+    new_landmark_procedure.add_children([DetectNewLandmark(), detect_anchor_or_at_goal])
     #explore_or_see_landmark.add_children([new_landmark_procedure, Exploration()])
     perception_pair.add_children([Perception(), mission])
-    explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure, Exploration()])
+    #explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure, Exploration()])
+    explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure])
+
     anchor_or_placed.add_children([DetectedAnchorAruco(), CompletedPlaceOrExploration()])
     mainfunction.add_children([anchor_or_placed, explore_or_newlandmark_or_pair])
     root.add_children([TimeControl(), mainfunction])

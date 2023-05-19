@@ -142,7 +142,7 @@ class object_detect:
 
         self.Pin = PinholeCameraModel()
 
-        flagss = rospy.Subscriber('/system_flags',flags, self.callback_flag)
+        rospy.Subscriber('/system_flags',flags, self.callback_flag)
 
         tss = ApproximateTimeSynchronizer([Subscriber('/usb_cam/image_raw', Img_msgu),
                               Subscriber('usb_cam/camera_info', Cam_infou)],1,1)
@@ -158,11 +158,12 @@ class object_detect:
 
     def callback_flag(self, msg: flags):
         if msg.perception == True:
-            for marker in self.marker_array:
-                if msg.object_id == marker.id:
-                    self.marker_array.pop(marker)
+            for idx, marker in enumerate(self.marker_array.markers):
+                if int(msg.object_id) == marker.id:
+                    print(f'BEFORE DELETING {len(self.marker_array.markers)}')
+                    self.marker_array.markers.pop(idx)
+                    print(f'AFTER DELETING {len(self.marker_array.markers)}')
                     self.marker_pub.publish(self.marker_array)
-                
 
     def callback_usb(self, msg: Img_msgu, msgi:Cam_infou):
         
@@ -178,7 +179,7 @@ class object_detect:
 
         with torch.inference_mode():
             out = self.detector(image)#.cpu()
-        bbs = Detector.decode_output(out, self.THRESHOLD-0.5)[0]
+        bbs = Detector.decode_output(out, self.THRESHOLD-0.55)[0]
                 
         skor = 0
 
@@ -195,8 +196,12 @@ class object_detect:
             u = (bb["x"]+bb["width"]//2)
             v = bb["y"]+bb["height"]//2
 
-            if v1 > 380:
+            if v1 > 340:
                 continue
+
+            if u1 < 20 or v1<20:
+                continue
+
 
             ## Draw rectangle
             out_image = cv2.rectangle(out_image,
@@ -217,7 +222,7 @@ class object_detect:
             
             #len_from_cen = np.sqrt((pos_msg[0]*pos_msg[0])+(pos_msg[1]*pos_msg[1]))
             len_from_cen = 0
-            dd = 0.17
+            dd = 0.18
             height = np.sqrt((dd*dd)+(len_from_cen*len_from_cen))
             
             pm = PointStamped()
@@ -229,7 +234,7 @@ class object_detect:
             
             pm.point.z = 0
 
-            print([cat, [pm.point.x, pm.point.y]])
+            #print([cat, [pm.point.x, pm.point.y]])
 
             self.pusb.publish(pm)
 
@@ -313,7 +318,7 @@ class object_detect:
                                     2)
             
             self.j = self.j+1
-            print([u, v, d])
+            #print([u, v, d])
             d = (d+0.23)
             pos_msg = projectPixelTo3dRay(msgi, (u,v)) #now in x,y,z relative the camera. 
             #print(pos_msg)
@@ -389,16 +394,16 @@ class object_detect:
         
         if len(a)> 0:
             if temp_new_cat == a[0]:
-                print("same again?")
+                #print("same again?")
                 return tempsort
 
-        print("STILL same again???")
+        #print("STILL same again???")
         tempsort[i-1] = [temp_new_cat,temp_new_x,temp_new_y,temp_new_z, max(tempsort[i][4], tempsort[i-1][4])+1,max(tempsort[i][5],tempsort[i-1][5])]
         
         tempsort.pop(i)
 
         self.temp = sorted(tempsort, key=itemgetter(5))
-        print("STEP 1 DONE")
+        #print("STEP 1 DONE")
 
         if i < len(tempsort):     
             if tempsort[i][0] == tempsort[i-1][0]:
@@ -413,10 +418,10 @@ class object_detect:
             tempsort[i-1] = [temp_new_cat,temp_new_x,temp_new_y,temp_new_z, max(tempsort[i][4], tempsort[i-1][4])+1,max(tempsort[i][5],tempsort[i-1][5])]
             #tempsort.pop(i)
             self.temp = sorted(tempsort, key=itemgetter(5))
-            print("STEP 2 DONE")  
+            #print("STEP 2 DONE")  
             
-        print(i)
-        print(f'a new match? {tempsort[i-1][4]}')
+        #print(i)
+        #print(f'a new match? {tempsort[i-1][4]}')
 
         if tempsort[i-1][4] > 50:
             self.temp = []
@@ -426,7 +431,7 @@ class object_detect:
             return tempsort
         
         if tempsort[i-1][4] >= 4 and tempsort[i-1][4] < 6:
-            print("OMG A SURE MATCH")
+            #print("OMG A SURE MATCH")
 
             if np.isnan(tempsort[i-1][3]):
                 return tempsort
@@ -445,12 +450,12 @@ class object_detect:
                         
                         if np.logical_or(abs(self.memory[mim][1][0] - x)<0.04,
                                         abs(self.memory[mim][1][1] - y)<0.04):
-                            print("already detected at this x,y")
+                            #print("already detected at this x,y")
                             a = [cat]
                             break
                      
                         else:
-                            print("new of same category") #if more than 2???????
+                            #print("new of same category") #if more than 2???????
                             cv2.imwrite("{}_1.png".format(self.catdict[cat]), out_image)
                         
                             self.memory.append([cat, [x,y,z]])
@@ -515,13 +520,13 @@ class object_detect:
     def rVizFunc(self, new_list):
         self.marker_array = MarkerArray()
         
-        print(f'GOING IN??? {new_list}')
+        #print(f'GOING IN??? {new_list}')
         
         marklist = []
         i = 0 
 
         for cat, pos_msg in new_list: 
-            print(cat)
+            #print(cat)
             #to handle if we have more of the same object
             if cat in marklist:
                 cat = 8 + cat 
