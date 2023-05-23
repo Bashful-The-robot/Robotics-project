@@ -2,6 +2,7 @@
 import rospy
 from std_msgs.msg import Int8
 from geometry_msgs.msg import PoseStamped
+from robp_msgs.msg import flags
 
 #This file publishes a -1 to the topic taskHandler and a position to the topic target_pos
 #This will be used by the function main
@@ -9,8 +10,9 @@ from geometry_msgs.msg import PoseStamped
 
 
 rospy.init_node('toDo')
-MissionPub = rospy.Publisher('/pathMission', Int8, queue_size=10)
-targetPub = rospy.Publisher('/target_pos', PoseStamped, queue_size=10)
+#MissionPub = rospy.Publisher('/pathMission', Int8, queue_size=10)
+#targetPub = rospy.Publisher('/target_pos', PoseStamped, queue_size=10)
+MissionPub =rospy.Publisher('/system_flags', flags, queue_size=10)
 rate = rospy.Rate(10)
 
 while not rospy.is_shutdown():
@@ -28,9 +30,11 @@ while not rospy.is_shutdown():
     msgPose.pose.orientation.z = 0.0
     msgPose.pose.orientation.w = 0.0
 
+    msg = flags()
+    msg.path_gen_mission = -1
     # publish the message
-    MissionPub.publish(msgInt)
-    targetPub.publish(msgPose)
+    MissionPub.publish(msg)
+    #targetPub.publish(msgPose)
 
     # sleep to maintain the loop rate
     rate.sleep()

@@ -31,7 +31,7 @@ class PurePursuitController:
 
         # Create Subscribers and publishers
         rospy.Subscriber('/state/cov',PoseWithCovarianceStamped, self.pose_callback)
-        rospy.Subscriber('/path',Path, self.path_callback)
+        rospy.Subscriber('/path',Path, self.path_callback,queue_size=1)
         rospy.Subscriber('/system_flags',flags,self.flags_callback)
 
         self.twist_pub = rospy.Publisher('/motor_controller/twist', Twist, queue_size=1)
@@ -49,7 +49,7 @@ class PurePursuitController:
             aux_pose.pose= msg.pose.pose
             pose_transform = self.tf_buffer.lookup_transform("map", "odom", rospy.Time(0))
             self.robot_pose = tf2_geometry_msgs.do_transform_pose(aux_pose, pose_transform)
-            #print("The robot position is ", self.robot_pose)
+            print("The robot position is ", self.robot_pose)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             pass
             #rospy.logwarn("Failed to transform pose: {e}")
@@ -57,7 +57,7 @@ class PurePursuitController:
         
     def path_callback(self, msg):
         self.path = msg
-    
+        print()
 
     def get_closest_point(self):
         
@@ -152,7 +152,7 @@ class PurePursuitController:
         if self.action == True:
             twist.angular.z = w
             twist.linear.x = v
-            
+            print(twist)
         elif self.action == False:
             twist.angular.z = 0
             twist.linear.x = 0

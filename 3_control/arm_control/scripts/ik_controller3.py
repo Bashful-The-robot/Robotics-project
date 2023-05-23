@@ -62,7 +62,9 @@ class RoboticArm:
         self.joint3_command_pub = rospy.Publisher('/joint3_controller/command_duration', CommandDuration, queue_size=10)
         self.joint4_command_pub = rospy.Publisher('/joint4_controller/command_duration', CommandDuration, queue_size=10)
         self.gripper_pub = rospy.Publisher('/r_joint_controller/command', Float64, queue_size=10)
-        self.mission_finished_pub = rospy.Publisher('/arm_motion_complete', Int8, queue_size=1)
+        self.arm_info_pub = rospy.Publisher('/arm_info', Int8, queue_size=1)
+        self.arm_info = Int8()
+        self.arm_info = 0
 
         # Define the subscriber to get the joint states.
         self.state1_subs = rospy.Subscriber('/joint2_controller/state',JointState, self.state1_callback)
@@ -119,9 +121,7 @@ class RoboticArm:
         #Align the arm with the target point and  correct the coordinates
         yaw = math.asin(y/x) 
         x = math.sqrt(y**2 + x**2)
-        print("x:",x)
         y = 0
-        print("first step")
         # Set different orientations of the gripper according to the distance to the object.
         if x>=300.0/1000:
             self.orientation = -0.785
@@ -167,7 +167,11 @@ class RoboticArm:
             self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor 
 
         else:
-            pass
+            if yaw > 0:
+                self.arm_info = -1
+            elif yaw < 0:
+                self.arm_info = -3
+            
         
         print("command 1:",self.joint1_angle,"state:",self.command1_duration)
         print("command 2:",self.joint2_angle,"state:",self.command2_duration)
@@ -308,11 +312,7 @@ if __name__ == '__main__':
     rate = rospy.Rate(10)
     
     while not rospy.is_shutdown():
-
-        mission_finished = Int8()
-        mission_finished.data = 0
         
-
         if controller.START_MISSION == True:
             
             if controller.PICK == True:
@@ -341,11 +341,11 @@ if __name__ == '__main__':
                 controller.return_to_origin()
 
                 if controller.PICK == True: 
-                    mission_finished.data = 1
+                    controller.arm_info.data = 1
                 elif controller.LEAVE == True:
-                    mission_finished.data = 2
+                    controller.arm_info.data = 2
 
-                controller.mission_finished_pub.publish(mission_finished)
+                controller.arm_info_pub.publish(controller.arm_info)
 
                 controller.START_MISSION = False
 
@@ -353,7 +353,7 @@ if __name__ == '__main__':
 
                 rospy.sleep(1.5)
         
-        controller.mission_finished_pub.publish(mission_finished)
+        controller.arm_info_pub.publish(controller.arm_info)
         rate.sleep() 
 
             

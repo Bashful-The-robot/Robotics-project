@@ -283,6 +283,7 @@ class Workspace:
             self.xmin = xmin-2
             self.ymin = ymin-2
             self.workspace_seen = True
+            print(f"MAx,MIN: {self.xmax},{self.ymax}")
 
     
 

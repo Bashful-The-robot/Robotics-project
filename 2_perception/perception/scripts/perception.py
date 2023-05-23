@@ -338,8 +338,14 @@ class object_detect:
             if len(self.memory)>0: #len(self.memorycat)>0:
                 for mim in range(len(self.memory)):
                     if (cat == self.memory[mim][0]): 
-                        if (self.memory[mim][1][0] - x < 0.1) and (self.memory[mim][1][1] - y < 0.1):
-                            continue 
+                        if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<0.1:
+                        #if (np.sqrt((float(self.memory[mim][1][0]**2 - x**2))< 0.1)) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2)) < 0.1):
+                            break 
+                    if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<1:
+                    #if (np.sqrt(float(self.memory[mim][1][0]**2 - x**2)) < 0.5) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2))< 0.5):
+                    #        breakpoint
+                        print(f'SOMWTHING CLOSE')
+                        break 
 
             self.temp.insert(self.j,[cat, x, y, z, 0, self.j]) 
 
@@ -351,6 +357,7 @@ class object_detect:
             if len(tempsort) < 1:
                 continue
 
+            
             #go through list of sorted detected objects
             tempsort = self.condition_filter(tempsort, out_image)
 

@@ -57,9 +57,11 @@ class Perception(pt.behaviour.Behaviour):
         #ball: 2
         #animal: 3
         for obj in self.obj_list:
+            print("THERE IS SOMETHING HERE ")
             #modulus
             if 0 <= obj[0]%8 <= 5:
                 if self.box_list[2] != None:
+                    print("THERE IS A BOX HERE ")
                     rospy.loginfo("success preception - animal")
                     #print("found a pair - animal")
                     self.PairFoundlist = [obj[1], self.box_list[2]] #pose of obj and box
@@ -482,7 +484,7 @@ if __name__ == "__main__":
     anchor_or_placed = pt.composites.Selector()
     explore_or_newlandmark_or_pair = pt.composites.Selector()
     perception_pair = pt.composites.Sequence()
-    #explore_or_see_landmark = pt.composites.Selector()
+    explore_or_see_landmark = pt.composites.Selector()
     new_landmark_procedure = pt.composites.Sequence()
     mission = pt.composites.Sequence()
     detect_anchor_or_at_goal = pt.composites.Selector()
@@ -494,8 +496,8 @@ if __name__ == "__main__":
     new_landmark_procedure.add_children([DetectNewLandmark(), detect_anchor_or_at_goal])
     #explore_or_see_landmark.add_children([new_landmark_procedure, Exploration()])
     perception_pair.add_children([Perception(), mission])
-    #explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure, Exploration()])
-    explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure])
+    explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure, Exploration()])
+    #explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure])
 
     anchor_or_placed.add_children([DetectedAnchorAruco(), CompletedPlaceOrExploration()])
     mainfunction.add_children([anchor_or_placed, explore_or_newlandmark_or_pair])
