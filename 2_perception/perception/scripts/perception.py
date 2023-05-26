@@ -344,7 +344,7 @@ class object_detect:
                     if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<1:
                     #if (np.sqrt(float(self.memory[mim][1][0]**2 - x**2)) < 0.5) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2))< 0.5):
                     #        breakpoint
-                        print(f'SOMWTHING CLOSE')
+                        #print(f'SOMWTHING CLOSE')
                         break 
 
             self.temp.insert(self.j,[cat, x, y, z, 0, self.j]) 
