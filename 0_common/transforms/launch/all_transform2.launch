@@ -32,7 +32,7 @@
 
  <node pkg="all_transforms" type="odometry.py" name="odometry"/>
 
- <node pkg="perception" type="perception.py" name="perception" outptu="screen"/>
+ <node pkg="perception" type="perception.py" name="perception"/>
  <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d /home/robot/dd2419_ws/src/rviz/frameFinder.rviz"/>
 
 	<!-- In meter -->
@@ -84,7 +84,7 @@
 <include file="$(find path_follower)/launch/path_follower.launch">
  </include>
  
- <include file="$(find path_generation)/launch/path_generation.launch">
+ <include file="$(find path_generation)/launch/path_generation.launch"> 
  </include>
  
  <node pkg="brain" type="brain4.py" name="brain" output="screen">

@@ -160,9 +160,9 @@ class object_detect:
         if msg.perception == True:
             for idx, marker in enumerate(self.marker_array.markers):
                 if int(msg.object_id) == marker.id:
-                    print(f'BEFORE DELETING {len(self.marker_array.markers)}')
+                    #rint(f'BEFORE DELETING {len(self.marker_array.markers)}')
                     self.marker_array.markers.pop(idx)
-                    print(f'AFTER DELETING {len(self.marker_array.markers)}')
+                    #print(f'AFTER DELETING {len(self.marker_array.markers)}')
                     self.marker_pub.publish(self.marker_array)
 
     def callback_usb(self, msg: Img_msgu, msgi:Cam_infou):
@@ -295,7 +295,7 @@ class object_detect:
             if d < 0.01 or np.isnan(d): 
                 print("No depth")
                 continue
-            if d > 1:
+            if d > 1.2:
                 continue
 
             if self.j == 20:
@@ -338,7 +338,7 @@ class object_detect:
             if len(self.memory)>0: #len(self.memorycat)>0:
                 for mim in range(len(self.memory)):
                     if (cat == self.memory[mim][0]): 
-                        if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<0.1:
+                        if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<0.4:
                         #if (np.sqrt((float(self.memory[mim][1][0]**2 - x**2))< 0.1)) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2)) < 0.1):
                             break 
                     if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<1:

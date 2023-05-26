@@ -13,11 +13,11 @@ import tf2_ros
 import tf2_geometry_msgs
 import math
 from aruco_msgs.msg import MarkerArray, Marker
-
+import time
 #from reactive_sequence import RSequence
 
 ##TO BE CHANGED #CHANGE!!!!! change everything here before starting!!!!!!!!!!!!!!
-stop_distance = 0.16
+stop_distance = 0.15
 class Perception(pt.behaviour.Behaviour):
     '''This class finds object pairs'''
     def __init__(self):
@@ -40,7 +40,7 @@ class Perception(pt.behaviour.Behaviour):
         super(Perception,self).__init__()
     def perception_cb(self,msg):
         self.obj_list = []
-        print(f"THIS IS THE LENGTH OF PERCPETION: {len(msg.markers)}")
+        #print(f"THIS IS THE LENGTH OF PERCPETION: {len(msg.markers)}")
         for marker in msg.markers:
             #6 cube
             #7 ball
@@ -57,11 +57,11 @@ class Perception(pt.behaviour.Behaviour):
         #ball: 2
         #animal: 3
         for obj in self.obj_list:
-            print("THERE IS SOMETHING HERE ")
+            #print("THERE IS SOMETHING HERE ")
             #modulus
             if 0 <= obj[0]%8 <= 5:
                 if self.box_list[2] != None:
-                    print("THERE IS A BOX HERE ")
+                    #print("THERE IS A BOX HERE ")
                     rospy.loginfo("success preception - animal")
                     #print("found a pair - animal")
                     self.PairFoundlist = [obj[1], self.box_list[2]] #pose of obj and box
@@ -146,7 +146,7 @@ class AtGoal(pt.behaviour.Behaviour):
             self.robotFound = True
             aux_pose = PoseStamped()
             aux_pose.pose= msg.pose.pose
-            pose_transform = self.tf_buffer.lookup_transform("map", "odom", rospy.Time(0),rospy.Duration(1.5))
+            pose_transform = self.tf_buffer.lookup_transform("map", "odom", msg.header.stamp, rospy.Duration(3))
             self.robot_pose = tf2_geometry_msgs.do_transform_pose(aux_pose, pose_transform)
             #print("The robot position is ", self.robot_pose)
         except(tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
@@ -155,7 +155,7 @@ class AtGoal(pt.behaviour.Behaviour):
 
     def update(self):
         '''Generic function to see if we are close to target'''
-        print("AtGoal update")
+        #print("AtGoal update")
         target = PoseStamped()
         #common_dict['target'] = common_dict['pickPose']        
         common_dict['perception'] = False
@@ -200,7 +200,7 @@ class Pick(pt.behaviour.Behaviour):
     '''Generic pick behaviour'''
     def __init__(self):
         super(Pick,self).__init__()
-        rospy.Subscriber('/arm_motion_complete', Int8, self.arm_status_callback)
+        rospy.Subscriber('/arm_info', Int8, self.arm_status_callback)
         self.arm_status = False
         self.buffer = tf2_ros.Buffer(rospy.Duration(100))
         self.listener = tf2_ros.TransformListener(self.buffer)
@@ -263,7 +263,7 @@ class Place(pt.behaviour.Behaviour):
     '''Generic place behaviour'''
     def __init__(self):
         super(Place,self).__init__()
-        rospy.Subscriber('/arm_motion_complete', Int8, self.arm_status_callback)
+        rospy.Subscriber('/arm_info', Int8, self.arm_status_callback)
         self.arm_status = False
 
     def arm_status_callback(self,msg):
@@ -350,6 +350,7 @@ class Exploration(pt.behaviour.Behaviour):
         common_dict['pickPose'] = Pose()
         common_dict['placePose'] = Pose()
         common_dict['object_id'] = None
+        common_dict['Status'] = 1
         rospy.loginfo("success exploration")
         #print("success exploration")
         return pt.common.Status.SUCCESS ## check with Filippa
@@ -412,7 +413,7 @@ class CompletedPlaceOrExploration(pt.behaviour.Behaviour):
             common_dict['object_id'] = None
             common_dict['Status'] = -1
             #print("success completed place")
-            rospy.loginfo("success completed place")
+            rospy.loginfo(f"success completed place {common_dict['Status']}")
             return pt.common.Status.SUCCESS
         else:
             #print("failure completed place")
@@ -475,6 +476,7 @@ if __name__ == "__main__":
         "Status": Status,
     }
   
+    time.sleep(60)
     #pub_flags = rospy.Publisher('/system_flags', flags, queue_size=1)
     
     # NODES ADDED
@@ -493,10 +495,11 @@ if __name__ == "__main__":
 
     detect_anchor_or_at_goal.add_children([DetectedAnchorAruco(),AtGoal()])
     mission.add_children([AtGoal(),Pick(),AtGoal(),Place()])
-    new_landmark_procedure.add_children([DetectNewLandmark(), detect_anchor_or_at_goal])
+    #new_landmark_procedure.add_children([DetectNewLandmark(), detect_anchor_or_at_goal])
     #explore_or_see_landmark.add_children([new_landmark_procedure, Exploration()])
     perception_pair.add_children([Perception(), mission])
-    explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure, Exploration()])
+    explore_or_newlandmark_or_pair.add_children([perception_pair, Exploration()])
+    #explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure, Exploration()])
     #explore_or_newlandmark_or_pair.add_children([perception_pair, new_landmark_procedure])
 
     anchor_or_placed.add_children([DetectedAnchorAruco(), CompletedPlaceOrExploration()])

@@ -31,6 +31,7 @@ class CartesianController:
         self.delta_encoder_right = 0
         self.dt_left = 0
         self.dt_right = 0
+        self.reset_integral = False
 
         #we create the subscribers and the publishers
         rospy.Subscriber('/motor/encoders',Encoders,self.encoders_callback)
@@ -52,16 +53,24 @@ class CartesianController:
                 self.integral_error_right =self.integral_error_right + right_error*self.dt_right
                 
 
-                #we calculate now the duty-cycle for each wheel 
-                duty_left = Kpa*left_error + Kia*self.integral_error_left
-                duty_right = Kpb*right_error + Kib*self.integral_error_right
-    #            duty_left = min(max(Kpa*left_error + Kia*self.integral_error_left, -1), 1)
-    #            duty_right = min(max(Kpb*right_error + Kib*self.integral_error_right, -1), 1)
+                #we calculate now the duty-cycle for each wheel
+                 
+                if self.reset_integral:
+                    self.integral_error_left = 0
+                    self.integral_error_right = 0
+                    self.reset_integral = False
+
+                duty_left = min(max(Kpa*left_error + Kia*self.integral_error_left, -1), 1)
+                duty_right = min(max(Kpb*right_error + Kib*self.integral_error_right, -1), 1)
+                
+                if abs(duty_left) > 1.2 or abs(duty_right) > 1.2:
+                    self.reset_integral = True
 
                 duty_msg.duty_cycle_left=duty_left
                 duty_msg.duty_cycle_right=duty_right
                 #we publish the duty cycle
                 print((self.estimated_w_left+self.estimated_w_right)/2)
+                
             else: 
                 duty_msg.duty_cycle_left=0
                 duty_msg.duty_cycle_right=0

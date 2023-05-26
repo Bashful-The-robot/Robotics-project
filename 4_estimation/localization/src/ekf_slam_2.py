@@ -373,32 +373,33 @@ class localization:
 
     def aruco_single_callback(self, msg):
         if self.update_done:
-            if np.sqrt(msg.pose.position.z**2 + msg.pose.position.x**2) < self.max_aruco_dist:
-                if abs((msg.header.stamp-self.transform_time_stamp).to_sec()) < self.dt:
-                    self.anchor = True
-                    try:
-                        trans = self.buffer.lookup_transform("odom",msg.header.frame_id, msg.header.stamp, rospy.Duration(0.5))
-                        do_trans = tf2_geometry_msgs.do_transform_pose(msg, trans)
-                        self.update_timestamp_500 = msg.header.stamp
-                        #if do_trans.pose.position.x < self.max_aruco_dist and do_trans.pose.position.y < self.max_aruco_dist: 
-                        if self.detected_before[0] == 0:
-                            self.landmark_loc[:,0] = np.array([do_trans.pose.position.x, do_trans.pose.position.y])
-                        self.landmark_aruco[0,0] = do_trans.pose.position.x
-                        self.landmark_aruco[1,0] = do_trans.pose.position.y
-                        self.landmark_det[0] = 1
-                        anchor_pub = PoseStamped()
-                        anchor_pub.header.stamp = msg.header.stamp
-                        anchor_pub.header.frame_id = "odom"
-                        anchor_pub.pose.position.x = do_trans.pose.position.x
-                        anchor_pub.pose.position.y = do_trans.pose.position.y
-                        anchor_pub.pose.position.z = 0
-                        anchor_pub.pose.orientation.x = 0
-                        anchor_pub.pose.orientation.y = 0
-                        anchor_pub.pose.orientation.z = 0
-                        anchor_pub.pose.orientation.w = 1
-                        self.anchor_pos.publish(anchor_pub)
-                    except:
-                        rospy.loginfo("No transform aruco single")
+            print("IN ARUCO ANCHORRRRRRRRRRRRRRRR")
+            #if np.sqrt(msg.pose.position.z**2 + msg.pose.position.x**2) < self.max_aruco_dist:
+            if abs((msg.header.stamp-self.transform_time_stamp).to_sec()) < self.dt:
+                self.anchor = True
+                try:
+                    trans = self.buffer.lookup_transform("odom",msg.header.frame_id, msg.header.stamp, rospy.Duration(0.5))
+                    do_trans = tf2_geometry_msgs.do_transform_pose(msg, trans)
+                    self.update_timestamp_500 = msg.header.stamp
+                    #if do_trans.pose.position.x < self.max_aruco_dist and do_trans.pose.position.y < self.max_aruco_dist: 
+                    if self.detected_before[0] == 0:
+                        self.landmark_loc[:,0] = np.array([do_trans.pose.position.x, do_trans.pose.position.y])
+                    self.landmark_aruco[0,0] = do_trans.pose.position.x
+                    self.landmark_aruco[1,0] = do_trans.pose.position.y
+                    self.landmark_det[0] = 1
+                    anchor_pub = PoseStamped()
+                    anchor_pub.header.stamp = msg.header.stamp
+                    anchor_pub.header.frame_id = "odom"
+                    anchor_pub.pose.position.x = do_trans.pose.position.x
+                    anchor_pub.pose.position.y = do_trans.pose.position.y
+                    anchor_pub.pose.position.z = 0
+                    anchor_pub.pose.orientation.x = 0
+                    anchor_pub.pose.orientation.y = 0
+                    anchor_pub.pose.orientation.z = 0
+                    anchor_pub.pose.orientation.w = 1
+                    self.anchor_pos.publish(anchor_pub)
+                except:
+                    rospy.loginfo("No transform aruco single")
 
     def aruco_callback(self,msg):
         if self.update_done:

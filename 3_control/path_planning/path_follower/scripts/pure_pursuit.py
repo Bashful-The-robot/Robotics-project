@@ -115,8 +115,10 @@ class PurePursuitController:
         
         if self.look_ahead_point is None or self.robot_pose is None:
             #rospy.logwarn("Lookahead point or robot pose not received!")
-            
-            return Twist()
+            twist = Twist()
+            twist.angular.z = 0
+            twist.linear.x = 0
+            return twist
         
         # Extract the x and y coordinates of the robot pose and the look-ahead point
         x_r = self.robot_pose.pose.position.x

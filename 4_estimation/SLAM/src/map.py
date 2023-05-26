@@ -12,7 +12,7 @@ class Grid:
         self.rate = rospy.Rate(10)
         #init subscriber to /marker topic
         self.pub = rospy.Publisher('/occupancygrid', OccupancyGrid, queue_size=1)
-        self.sub = rospy.Subscriber('/occupancyGridUpdate', OccupancyGrid, self.callback)
+        self.sub = rospy.Subscriber('/occupancyGridUpdate', OccupancyGrid)
         self.workspace =[]
         self.frame_id = None
         self.stamp = None

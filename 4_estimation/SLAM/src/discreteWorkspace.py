@@ -65,7 +65,7 @@ class Workspace:
         self.cubePose = []
         self.cubePose = []
     
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(5)
         
 
 
@@ -480,4 +480,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

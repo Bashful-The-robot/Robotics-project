@@ -42,7 +42,7 @@
 
  <node pkg="pi_controller" type="pi_controller.py" name="pi_controller"/>
 
- <node pkg="perception" type="perception.py" name="perception"/>
+ <!--<node pkg="perception" type="perception.py" name="perception"/>-->
 
 
  <node pkg="all_transforms" type="odometry.py" name="odometry"/>

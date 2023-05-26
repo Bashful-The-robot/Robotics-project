@@ -64,7 +64,7 @@ class RoboticArm:
         self.gripper_pub = rospy.Publisher('/r_joint_controller/command', Float64, queue_size=10)
         self.arm_info_pub = rospy.Publisher('/arm_info', Int8, queue_size=1)
         self.arm_info = Int8()
-        self.arm_info = 0
+        #self.arm_info.data = 0
 
         # Define the subscriber to get the joint states.
         self.state1_subs = rospy.Subscriber('/joint2_controller/state',JointState, self.state1_callback)
