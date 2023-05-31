@@ -52,7 +52,7 @@ class Workspace:
         self.prevGrid = None
         self.occGrid = None
         self.occMask = None
-        self.RobPose = PoseWithCovarianceStamped()
+        self.RobPose = PoseStamped()
 
         self.workspace_seen = False
         self.boundary = False
@@ -64,11 +64,11 @@ class Workspace:
         self.objNameArray = []
         self.workspacePoints = []
         self.cubePose = []
-        self.cubePose = []
+        self.markerPose = []
     
         self.rate = rospy.Rate(2)
         
-
+        self.init_ard_rob = True
 
 
     def aruco_cb(self, msg):
@@ -76,7 +76,7 @@ class Workspace:
         if not self.grid_available:
             rospy.loginfo("NO GRID (IN CB ARUCO)")
             return
-        
+        self.markerPose = []
         self.marker = msg.markers
         for marker in self.marker:
             if marker.id != 500 and marker.id != 0:
@@ -87,8 +87,8 @@ class Workspace:
                 xgrid = math.ceil((x-self.xmin)/(self.xmax-self.xmin)*self.width)
                 ygrid = math.ceil((y-self.ymin)/(self.ymax-self.ymin)*self.height)
                 
-                self.cubePose.append([xgrid,ygrid])
-        
+                self.markerPose.append([xgrid,ygrid])
+        rospy.loginfo(f"The marker pose: {self.markerPose},xmin,ymin ,({self.xmin},{self.ymin} & maxes: ({self.xmax},{self.ymax}))")
 
 
 
@@ -131,9 +131,7 @@ class Workspace:
         '''Gets angle and position from robot in base_link, have to convert to map.'''
         try:
             trans = self.buffer.lookup_transform("map",msg.header.frame_id, msg.header.stamp, rospy.Duration(0.5))
-            print(f"done trans")
             do_trans = tf2_geometry_msgs.do_transform_pose(msg.pose, trans)
-            print(f"done doooooooooooooooooooooo_trans, {do_trans.pose}")
             self.RobPose = do_trans
             self.givenRobotPose = True
         except Exception as e:
@@ -257,8 +255,9 @@ class Workspace:
             #if self.grid_data[x,y] < 1 and [x,y] not in self.cubePose:
             
             #if [x,y] not in self.cubePose and self.grid_data[x,y]<10:
-            if [x,y] not in self.cubePose:
-            
+            #if [x,y] not in self.cubePose:
+            if [x,y] not in self.cubePose and self.prevGrid[x,y]<10 and [x,y] not in self.markerPose:
+
                 self.grid_data[x,y] = 0
 
             if error > 0:
@@ -269,8 +268,8 @@ class Workspace:
                     traversed.append((int(x + x_inc), int(y)))
                     #if self.grid_data[x+x_inc,y] != 101:
                     #if self.grid_data[x,y] < 1 and [x,y] not in self.cubePose:
-                    #if [x,y] not in self.cubePose and self.grid_data[x,y]<10:
-                    if [x,y] not in self.cubePose:
+                    if [x,y] not in self.cubePose and self.prevGrid[x,y]<10 and [x,y] not in self.markerPose:
+                    #if [x,y] not in self.cubePose:
                     
                         self.grid_data[x + x_inc,y] = 0
                 y += y_inc
@@ -428,11 +427,23 @@ class Workspace:
         #                self.grid_data = self.lineAlgorithm(self.workspacePoints[i][0],self.workspacePoints[i][1],self.workspacePoints[i+1][0],self.workspacePoints[i+1][1],self.grid_data)
         
         self.grid_data[self.occMask]=100
-        for i in range(len(self.cubePose)):
+        '''for i in range(len(self.cubePose)):
             try:
                 self.grid_data[int(self.cubePose[i][0]),int(self.cubePose[i][1])] = 100
             except:
-                print("Detection outside workspace")
+                print("Detection outside workspace")'''
+
+
+
+
+
+        xRob = math.ceil((self.RobPose.pose.position.x-self.xmin)/(self.xmax-self.xmin)*self.width)
+        yRob = math.ceil((self.RobPose.pose.position.y-self.ymin)/(self.ymax-self.ymin)*self.height)
+#                 #seenGrid[xRob,yRob] = 1
+        
+        if self.init_ard_rob and self.workspace_seen and self.givenRobotPose:
+            self.grid_data[(xRob-7):(xRob+8),(yRob-7):(yRob+8)] = 0
+            self.init_ard_rob = False
         oldGrid = self.grid_data
         
         if self.prevGridExist:
@@ -453,7 +464,7 @@ class Workspace:
         gaussian_grid = gaussian_grid * mean_value + (1 - gaussian_grid) * 1.5
 
     # Cap the maximum value to 101
-        gaussian_grid= self.grid_data + gaussian_grid
+        #gaussian_grid = self.grid_data + gaussian_grid
 
           
         gaussian_grid = np.clip(gaussian_grid, -1, 100)

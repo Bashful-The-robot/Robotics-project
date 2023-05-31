@@ -38,6 +38,8 @@ class AMdetector:
 
     def tf_callback(self,msg):
         list = ['landmark1','landmark2','landmark3']
+        self.marker_array = vMarkerArray()
+
         for tf in msg.transforms:
             if tf.child_frame_id in list:
                 try:

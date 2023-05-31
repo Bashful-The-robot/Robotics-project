@@ -8,54 +8,55 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, Twist, PoseStamped
 from nav_msgs.msg import Path
 from robp_msgs.msg import flags
 from std_msgs.msg import Int8
-
-#########################################################
+##########################################################
 # Pure Pursuit Controller 
 #     Determine the current location of the robot 
 #     Find the path point closest to the robot
 #     Find the target point 
 #     Transform the target point to the robot coordinates
 #     Calculate the curvature and the necessary twist 
-#########################################################
+##########################################################
 
 class PurePursuitController:
 
     def __init__(self):
         # Define some constants
-        self.look_ahead_distance = 0.15  #meters
-        self.target_velocity = 0.05 #meters/second
+        self.look_ahead_distance = 0.20  #meters
+        self.target_velocity = 0.1 #meters/second
         self.robot_pose = PoseStamped()
         self.path = Path()
         self.closest_point = [None,None]
         self.look_ahead_point = None
         self.action = False
         self.path_received = False
-        self.arm_done = False
-
+        self.arm_done = 0
         # Create Subscribers and publishers
-        rospy.Subscriber('/state/cov',PoseWithCovarianceStamped, self.pose_callback,queue_size=1, tcp_nodelay=True)
+        rospy.Subscriber('/state/cov',PoseWithCovarianceStamped, self.pose_callback,queue_size=1)
         rospy.Subscriber('/path',Path, self.path_callback,queue_size=1)
-        rospy.Subscriber('/system_flags',flags,self.flags_callback, queue_size=1)
+        rospy.Subscriber('/system_flags',flags,self.flags_callback,queue_size=1)
         rospy.Subscriber('/arm_info', Int8,self.arm_callback,queue_size=1)
-       
+
         self.twist_pub = rospy.Publisher('/motor_controller/twist', Twist, queue_size=1)
 
         # Define the transform buffer and listener 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+    
+    def arm_callback(self,msg):
+        self.arm_done = msg.data
 
     def flags_callback(self,msg):
         self.action = msg.path_control
-    def arm_callback(self,msg):
-        self.arm_done = msg.data
 
     def pose_callback(self, msg):
         try:
             aux_pose = PoseStamped()
             aux_pose.pose= msg.pose.pose
-            pose_transform = self.tf_buffer.lookup_transform("map", "odom", rospy.Time(0))
+            #pose_transform = self.tf_buffer.lookup_transform("map", "odom", rospy.Time(0))
+            pose_transform = self.tf_buffer.lookup_transform("map", "odom", msg.header.stamp,rospy.Duration(1))
+
             self.robot_pose = tf2_geometry_msgs.do_transform_pose(aux_pose, pose_transform)
-            print("The robot position is ", self.robot_pose)
+            # print("The robot position is ", self.robot_pose)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             pass
             #rospy.logwarn("Failed to transform pose: {e}")
@@ -79,7 +80,7 @@ class PurePursuitController:
             if dist < min_dist:
                 min_dist = dist
                 self.closest_point = [i,waypoint]
-        #print("The closest point is:",self.closest_point)
+        print("The closest point is:",self.closest_point)
     
     
     def get_lookahead_point(self):
@@ -140,19 +141,19 @@ class PurePursuitController:
             transform = self.tf_buffer.lookup_transform("base_link", "map",rospy.Time(0),rospy.Duration(3.0))
             target_pose_transformed = tf2_geometry_msgs.do_transform_pose(self.look_ahead_point,transform)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            #rospy.logwarn(f"Failed to transform goal point: {e}")
-            pass
+            rospy.logwarn(f"Failed to transform goal point: {e}")
+            
         
 
-        k=0
+        k = 0
         # Calculate the curvature of the path
-        if L == 0:
-            k = 0
-        else:
-            try:
+        try:
+            if L == 0:
+                k = 0
+            else:
                 k = 2 * target_pose_transformed.pose.position.y / (L ** 2)
-            except:
-                rospy.loginfo("nooo")    
+        except:
+            rospy.loginfo(f"not working")
         # Calculate the desired angular velocity and linear velocity
         w = self.target_velocity * k
         v = self.target_velocity
@@ -162,7 +163,7 @@ class PurePursuitController:
         if self.action == True:
             twist.angular.z = w
             twist.linear.x = v
-            print(twist)
+            #print(twist)
         elif self.action == False:
             twist.angular.z = 0
             twist.linear.x = 0
@@ -175,7 +176,14 @@ if __name__ == '__main__':
     rate=rospy.Rate(10)
     
     while not rospy.is_shutdown():
-        if controller.arm_done == 2:
+        if controller.path_received:
+            controller.get_closest_point()
+            controller.get_lookahead_point()
+            twist = controller.get_twist()
+            controller.twist_pub.publish(twist)
+            controller.path_received = False
+        
+        elif controller.arm_done == 2:
             for i in range(10):
                 controller.arm_done == 0
                 twist = Twist()
@@ -184,13 +192,12 @@ if __name__ == '__main__':
                 controller.twist_pub.publish(twist)
                 rate.sleep()
         else:
-            controller.get_closest_point()
-            controller.get_lookahead_point()
-            twist = controller.get_twist()
+            twist = Twist()
+            twist.angular.z = 0
+            twist.linear.x = 0
             controller.twist_pub.publish(twist)
-
-
-        rate.sleep()    
+        rate.sleep()        
+        
         
     
     

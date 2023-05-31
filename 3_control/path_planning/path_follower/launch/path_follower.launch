@@ -4,7 +4,7 @@
   <!--<node pkg="path_follower" name="pure_pursuit" type="pure_pursuit.py" output="screen"/>-->
   <node pkg="path_follower" name="pure_pursuit" type="pure_pursuit.py"/>
   
-  <node pkg="path_follower" name="cartesian_controller" type="cartesian_controller.py"/>
+  <node pkg="path_follower" name="cartesian_controller" type="cartesian_controller.py" />
   
 </launch>
 

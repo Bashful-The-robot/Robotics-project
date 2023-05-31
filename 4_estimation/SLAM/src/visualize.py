@@ -29,7 +29,7 @@ class visualize_marker:
         self.msg_header = None
         self.inversed_transform = None
         
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(0.5)
 
         self.anchor_det = False
 

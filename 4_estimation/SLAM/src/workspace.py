@@ -32,7 +32,9 @@ class Workspace:
     def readCSV(self):
         #read in the tsv file example_workspace.csv
 
-        with open('/home/robot/dd2419_ws/src/robot/SLAM/src/example_workspace.tsv', 'r') as f: #dd2419_ws/src/robot/SLAM/src
+        with open('/home/robot/BASHFUL_WS/src/4_estimation/SLAM/src/test.tsv', 'r') as f: #dd2419_ws/src/robot/SLAM/src
+        #with open('/home/robot/dd2419_ws/src/robot/SLAM/src/example_workspace.tsv', 'r') as f: #dd2419_ws/src/robot/SLAM/src
+        
             reader = csv.reader(f, delimiter='\t')
             workspace = list(reader)
             
@@ -74,11 +76,7 @@ class Workspace:
             line_marker.points.append(pointsArray[i])
         line_marker.points.append(pointsArray[0])# This is for adding the last point to the first point
 
-        #line_marker.points.append(p1)
-        #line_marker.points.append(p2)
-        #line_marker.points.append(p3)
-        #line_marker.points.append(p4)
-        #line_marker.points.append(p1)
+        
         self.marker_array.markers.append(line_marker)
         while not rospy.is_shutdown():
             self.marker_pub.publish(self.marker_array)

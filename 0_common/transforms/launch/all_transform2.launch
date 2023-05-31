@@ -13,6 +13,7 @@
     <param name="image_width" value="640" />
     <param name="image_height" value="480" />
     <param name="pixel_format" value="yuyv" />
+    <param name="framerate" value="15" />
     <param name="color_format" value="yuv422p" />
     <param name="camera_frame_id" value="usb_cam" />
     <param name="io_method" value="mmap"/>
@@ -25,6 +26,7 @@
    <arg name="filters" value="pointcloud"/>
    <arg name="unite_imu_method" value="linear_interpolation"/>
    <arg name="gyro_fps"            value="400"/>
+   <arg name="color_fps"            value="15"/>
    <arg name="accel_fps"           value="100"/>
    <arg name="enable_gyro"         value="true"/>
    <arg name="enable_accel"        value="true"/>
@@ -32,7 +34,7 @@
 
  <node pkg="all_transforms" type="odometry.py" name="odometry"/>
 
- <node pkg="perception" type="perception.py" name="perception"/>
+<node pkg="perception" type="perception.py" name="perception"/>
  <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d /home/robot/dd2419_ws/src/rviz/frameFinder.rviz"/>
 
 	<!-- In meter -->
@@ -73,17 +75,14 @@
 		<param name="corner_refinement" value="$(arg corner_refinement)" />
 	</node>
 
- <include file="$(find localization)/launch/localization.launch">
+<include file="$(find localization)/launch/localization.launch">
  </include>
-
-
-
  <include file="$(find SLAM)/launch/slam.launch"> 
  </include>
-
+ 
 <include file="$(find path_follower)/launch/path_follower.launch">
  </include>
- 
+
  <include file="$(find path_generation)/launch/path_generation.launch"> 
  </include>
  

@@ -52,12 +52,10 @@ class PathControl:
         
         #Astar variables
         self.astarObj = None
-        self.width = None
-        self.height = None
+        self.new_grid = None
         self.grid_msg = None        #msg used incallback
-        self.geodef = False     # NEWLY ADDED
-        self.xmax =4.42
-        self.ymax =9.79
+        
+        self.poly = None
 
         #Used to transform the current position to map frame
         self.tf_buffer = tf2_ros.Buffer()
@@ -66,7 +64,6 @@ class PathControl:
         #Subscribers
         rospy.Subscriber('/occupancyGridUpdate',OccupancyGrid, self.grid_callback,queue_size=1)
         rospy.Subscriber('/state/cov', PoseWithCovarianceStamped, self.current_callback,queue_size=1)  
-        #rospy.Subscriber('/geofence', MarkerArray, self.geofence_callback,queue_size=1)
         self.geofenceSub = rospy.Subscriber('/geofence', MarkerArray, self.geofence_callback,queue_size=1)
         rospy.Subscriber('/system_flags', flags, self.target_mission_callback,queue_size=1)
 
@@ -78,16 +75,12 @@ class PathControl:
     def process_grid(self):
         self.grid = ros_numpy.occupancy_grid.occupancygrid_to_numpy(self.grid_msg)
 
-        if self.geofence_points != None:
-            new_grid = np.full(self.grid.shape,100)
-            self.grid_geofence_points = [self.convert_to_grid(Node(point.x,point.y)) for point in self.geofence_msg.markers[0].points]  #geofence points in grid_coordinates
-            self.grid_geofence_points = list(sum(self.grid_geofence_points, ()))  
-            r, c = polygon(self.grid_geofence_points[1::2], self.grid_geofence_points[::2])
-            new_grid[r,c] = self.grid[r, c]
-        else:
-            new_grid =  None
+        new_grid = np.full(self.grid.shape,100)
+        self.grid_geofence_points = [self.convert_to_grid(Node(point.x,point.y)) for point in self.geofence_msg.markers[0].points]  #geofence points in grid_coordinates
+        self.grid_geofence_points = list(sum(self.grid_geofence_points, ()))  
+        r, c = polygon(self.grid_geofence_points[1::2], self.grid_geofence_points[::2])
+        new_grid[r,c] = self.grid[r, c]
         return new_grid
-            
     
     def grid_callback(self,msg):
         self.grid_msg = msg
@@ -100,35 +93,37 @@ class PathControl:
         self.mission = msg.path_gen_mission
         self.goal =msg.target.position
 
-        # if (self.grid_msg != None) and (self.mission != None):
-        #     new_grid = self.process_grid()
-        #     if new_grid is not None:
-        #         data = [self.resolution,self.xmin,self.ymin]
+        if (self.grid_msg != None) and (self.mission != None) and (self.geofence_points != None):
+            self.new_grid = self.process_grid()
+            data = [self.resolution,self.xmin,self.ymin]
 
-        #         self.astarObj = Astar(new_grid,data,self.geofence_points)
-        #         if self.mission == int(-1):   #Explorer mode
-        #             self.gotoUnexplored()
-        #             self.mission = None
-        #             print("he entrado en explorer mode")
+            #self.astarObj = Astar(new_grid,data,self.geofence_points)
+            self.astarObj = Astar(self.new_grid,data)
+            if self.mission == int(-1):   #Explorer mode
+                print("explorer mode")
+                self.gotoUnexplored()
 
-        #         elif self.mission == int(1):    #Receive goal
-        #             print("he entrado en receive goal")
-        #             self.path_planning()
-        #             self.mission = None
-        #         elif self.mission == int(2):       #Landmark
-        #             self.path_planning()
-        #             self.mission = None
+            elif self.mission == int(1):    #Receive goal
+                print("path planning to goal")
+                self.path_planning()
+
+            elif self.mission == int(2):       #Landmark
+                print("laaandmark")
+                self.path_planning()
+                    
 
 
     def geofence_callback(self,msg):
         self.geofence_msg = msg
         self.geofence_points = [(point.x, point.y) for point in msg.markers[0].points]
+        self.poly = Polygon(self.geofence_points)   
+
         self.geofenceSub.unregister()
 
-    
-   
     def convert_to_grid(self,pos):
         #Converts the position in map frame into nodes in the gridmap
+        x = pos.x
+        y = pos.y
         xgrid = int((pos.x -self.xmin) / self.resolution)
         ygrid = math.ceil((pos.y - self.ymin) / self.resolution)
         return xgrid,ygrid
@@ -149,9 +144,9 @@ class PathControl:
             aux_pose.pose= msg.pose.pose
             pose_transform = self.tf_buffer.lookup_transform("map", "odom", msg.header.stamp,rospy.Duration(2))
             self.current_pos = tf2_geometry_msgs.do_transform_pose(aux_pose, pose_transform).pose.position
-
-        except Exception as e: # (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            rospy.logwarn("Pzth control: Failed to transform pose: {e.message}")
+            #print(self.current_pos)
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            rospy.logwarn("Failed to transform pose: {e}")
             rospy.logwarn("Robot pose: {}".format(self.current_pos))
     
 
@@ -166,8 +161,8 @@ class PathControl:
             pose.header.stamp = rospy.Time.now()
             pose.header.frame_id = "map"
             #working
-            pose.pose.position.y = (node.x * self.resolution) + self.ymin
-            pose.pose.position.x = (node.y *self.resolution) + self.xmin
+            pose.pose.position.y = (node.x * self.resolution) + self.xmin
+            pose.pose.position.x = (node.y *self.resolution) + self.ymin
             pose.pose.position.z =0
             pathMsg.poses.append(pose)    
         return pathMsg    
@@ -175,19 +170,15 @@ class PathControl:
     def path_planning(self,explorerLandmarkGoal=None):
         if self.astarObj != None:
             self.targetPos = explorerLandmarkGoal
-            
 
             #If no goal given from the exploration or landmark-check, then we're pathplanning to given goal position
-            if explorerLandmarkGoal == None:                                             
-                self.targetPos = self.goal    #Target position is the goal position
+            if explorerLandmarkGoal == None:
+                self.targetPos = Node(self.goal.y,self.goal.x)    #Target position is the goal position
                 self.targetPos = self.astarObj.convert_to_grid(self.targetPos)
-                self.targetPos = self.astarObj.flip(self.targetPos)
-                if not self.astarObj.isInsideWS(self.targetPos):
+
+                if not self.isInsideWS(self.targetPos):
                     rospy.loginfo("Goal position is outside the workspace")
                     self.targetPos = None
-            if self.targetPos == explorerLandmarkGoal:
-                pass
-            
 
             if self.current_pos != None and self.targetPos != None:    #Checks if it's possible to create a path
                 path = self.astarObj.get_trajectory(self.current_pos, self.targetPos)
@@ -195,7 +186,7 @@ class PathControl:
                     print("-----------------------")
                     print("PATH CREATED TOWARDS " + str(self.targetPos.x) + ", " + str(self.targetPos.y))
                     print("-----------------------")
-                    
+
                     pathMsg = self.generate_pathMsg(path)
                     self.pubPath.publish(pathMsg)
                 elif explorerLandmarkGoal != None:                         #If no path and in explorer mode
@@ -203,8 +194,6 @@ class PathControl:
                     self.unreachableExplorerPoints.append(self.targetPos)  #Append the unreachable goal position
                 else:
                     rospy.loginfo("Goal position was unreachable")
-                
-
     # def atGoal(self,goal):      
     #     isClose = False
     #     if goal == 0:
@@ -214,7 +203,19 @@ class PathControl:
     #     if closeInX and closeInY:
     #         isClose = True                                              #True if at goal
     #     return isClose
-    
+    def isInsideWS(self,point):
+        ##Checks if a point in map is inside the polygon
+        if self.poly == None:
+            print("Should add a wait for msg maybe")
+        #Flip coordinates since the coordinate systems are different
+        y_m = point.x
+        x_m = point.y
+        point = Point(x_m,y_m)
+        if self.poly.contains(point):
+            return point
+        else:
+            return None
+
         ####        Exploring functions      ###
     def gotoUnexplored(self):
         node = self.astarObj.get_explorerNode()
@@ -233,33 +234,13 @@ class PathControl:
         
     def explorer_mode(self):
         element = self.astarObj.get_explorerNode()
-    
-    
+
                         
 if __name__ == '__main__':
     rospy.init_node('path_control')
     rate=rospy.Rate(5)
-    pathObj = PathControl()      
     while not rospy.is_shutdown():
-        if (pathObj.grid_msg != None) and (pathObj.mission != None):
-            new_grid = pathObj.process_grid()
-            if new_grid is not None:
-                data = [pathObj.resolution,pathObj.xmin,pathObj.ymin]
-
-                pathObj.astarObj = Astar(new_grid,data,pathObj.geofence_points)
-                if pathObj.mission == int(-1):   #Explorer mode
-                    pathObj.gotoUnexplored()
-                    pathObj.mission = None
-                    print("he entrado en explorer mode")
-
-                elif pathObj.mission == int(1):    #Receive goal
-                    print("he entrado en receive goal")
-                    pathObj.path_planning()
-                    pathObj.mission = None
-                elif pathObj.mission == int(2):       #Landmark
-                    pathObj.path_planning()
-                    pathObj.mission = None
-
+        pathObj = PathControl()      
         rate.sleep() 
 
         

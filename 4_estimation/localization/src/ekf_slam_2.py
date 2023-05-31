@@ -35,7 +35,7 @@ class localization:
         rospy.Subscriber('/velocity', TwistStamped, self.velocity_callback, queue_size=1)
         rospy.Subscriber('/odometry', TransformStamped, self.odometry_callback, queue_size=1)
         #publsiher
-        self.cov_pub = rospy.Publisher('/state/cov', PoseWithCovarianceStamped, queue_size=10)
+        self.cov_pub = rospy.Publisher('/state/cov', PoseWithCovarianceStamped, queue_size=50)
         self.odom_map_diff = rospy.Publisher('/odom_map_diff', PointStamped, queue_size=10)
         self.anchor_pos = rospy.Publisher('/anchor_aruco', PoseStamped, queue_size=10)
 
@@ -111,7 +111,7 @@ class localization:
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.trans = None
 
-        self.rate = rospy.Rate(5)
+        self.rate = rospy.Rate(20)
 
         while not self.anchor and not rospy.is_shutdown():
             rospy.loginfo("Waiting for anchor aruco")
@@ -121,6 +121,7 @@ class localization:
         while not rospy.is_shutdown():
             if self.new_odometry and self.update_done:
                 self.prediction()
+                self.rate.sleep()
             
 
     def prediction(self):
@@ -425,6 +426,10 @@ class localization:
 def main():
     rospy.init_node("localization")
     loc = localization()
+    rate = rospy.Rate(10)
+    while not rospy.is_shutdown():
+        rate.sleep()
+    rospy.spin()
 
 if __name__ == '__main__':
     main()

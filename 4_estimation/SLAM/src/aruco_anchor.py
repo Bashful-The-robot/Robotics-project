@@ -34,6 +34,8 @@ class ArucoDetection:
         self.diff_new = False
         self.temp = None
         self.temp2 = None
+
+        self.old_time = None
         while not rospy.is_shutdown():
             if self.msg_header != None:
                 self.initMap()
@@ -68,20 +70,11 @@ class ArucoDetection:
         self.init_map_odom.child_frame_id = "odom"
         self.init_map_odom.header.stamp = rospy.Time.now() #self.msg_header
 
-        if np.any(self.trans) != None and np.any(self.inversed_transform) != None:  
-#            if np.any(self.temp) == None:
-#                self.temp = transformations.translation_from_matrix(self.inversed_transform)
-#            if np.any(self.temp2) == None:
-#                self.temp2 = transformations.quaternion_from_matrix(self.inversed_transform)
-#                
-#            self.init_map_odom.transform.translation.x = self.temp[0]
-#            self.init_map_odom.transform.translation.y = self.temp[1]
-#            self.init_map_odom.transform.translation.z = self.temp[2]
-#
-#            self.init_map_odom.transform.rotation.x = self.temp2[0]
-#            self.init_map_odom.transform.rotation.y = self.temp2[1] 
-#            self.init_map_odom.transform.rotation.z = self.temp2[2]
-#            self.init_map_odom.transform.rotation.w = self.temp2[3]
+        if np.any(self.trans) != None and np.any(self.inversed_transform) != None:
+            time = 0  
+            if self.old_time != None:
+                time = (self.msg_header-self.old_time).to_sec()
+            #if time >= 0:
 
             diff = [self.diff[0], self.diff[1], self.diff[2]]     
 
@@ -109,14 +102,21 @@ class ArucoDetection:
             trans.transform.translation.x = diff[0]
             trans.transform.translation.y = diff[1]
             trans.transform.translation.z = 0
-            q = quaternion_from_euler(0, 0, diff[2])
-
-            trans.transform.rotation.x = q[0]
-            trans.transform.rotation.y = q[1]
-            trans.transform.rotation.z = q[2]
-            trans.transform.rotation.w = q[3]
-
+            if diff[2] == 0.0:
+                print("0.0", diff[2])
+                trans.transform.rotation.x = 0
+                trans.transform.rotation.y = 0
+                trans.transform.rotation.z = 0
+                trans.transform.rotation.w = 1
+            else:
+                print("else", diff[2])
+                q = quaternion_from_euler(0, 0, diff[2])
+                trans.transform.rotation.x = q[0]
+                trans.transform.rotation.y = q[1]
+                trans.transform.rotation.z = q[2]
+                trans.transform.rotation.w = q[3]
             do_trans = tf2_geometry_msgs.do_transform_pose(new_pose,trans)
+            #self.init_map_odom.header.stamp = self.msg_header
 
             self.init_map_odom.transform.translation.x = do_trans.pose.position.x
             self.init_map_odom.transform.translation.y = do_trans.pose.position.y
@@ -126,7 +126,8 @@ class ArucoDetection:
             self.init_map_odom.transform.rotation.y = do_trans.pose.orientation.y 
             self.init_map_odom.transform.rotation.z = do_trans.pose.orientation.z
             self.init_map_odom.transform.rotation.w = do_trans.pose.orientation.w
-
+            self.old_time = self.msg_header
+            print("-------------------------")
         else:
             self.init_map_odom.transform.translation.x = 0
             self.init_map_odom.transform.translation.y = 0

@@ -17,7 +17,8 @@ import time
 #from reactive_sequence import RSequence
 
 ##TO BE CHANGED #CHANGE!!!!! change everything here before starting!!!!!!!!!!!!!!
-stop_distance = 0.15
+stop_distance = 0.10
+stop_distance_box = 0.2
 class Perception(pt.behaviour.Behaviour):
     '''This class finds object pairs'''
     def __init__(self):
@@ -51,6 +52,8 @@ class Perception(pt.behaviour.Behaviour):
         for marker in msg.markers:
             if marker.id != 500 and marker.id != 0 and marker.id not in self.box_list:
                 self.box_list[marker.id - 1] = marker.pose
+                if marker.id == common_dict["boxid"]:
+                    common_dict["placePose"] = marker.pose
         
     def update(self):
         #cube: 1
@@ -75,6 +78,7 @@ class Perception(pt.behaviour.Behaviour):
                     common_dict['target'].position = self.PairFoundlist[0].position  
                     common_dict['object_id']=obj[0]
                     common_dict['Status'] = -1
+                    common_dict["boxid"] = 3
                     return pt.common.Status.SUCCESS
             elif obj[0]%8 == 6:
                 if self.box_list[0] != None:
@@ -92,6 +96,7 @@ class Perception(pt.behaviour.Behaviour):
                     print("the target is:", common_dict['target'].position)
                     common_dict['object_id']=obj[0]
                     common_dict['Status'] = -1
+                    common_dict["boxid"] = 1
                     #print(f"Updated dict as: {common_dict}")
                     rospy.loginfo("success preception - cube")
                     #print("success preception - cube")
@@ -110,6 +115,7 @@ class Perception(pt.behaviour.Behaviour):
                     common_dict['placePose'].position = self.PairFoundlist[1].position
                     common_dict['target'].position = self.PairFoundlist[0].position   
                     common_dict['object_id']=obj[0]
+                    common_dict["boxid"] = 2
                     rospy.loginfo("success preception - ball")
                     #print("success preception - ball")
                     return pt.common.Status.SUCCESS
@@ -119,14 +125,16 @@ class Perception(pt.behaviour.Behaviour):
         #print("failure preception")
         return pt.common.Status.FAILURE
     
-        
+
+
+
 class AtGoal(pt.behaviour.Behaviour):
     def __init__(self):
         self.id = "PathPlanning"
         
         # Attribute for publisher
         self.target = Pose()   
-   
+        self.rate = rospy.Rate(10)
         self.robot_pose = None
         self.lastDist2Goal = None
         self.robotFound = False
@@ -143,14 +151,14 @@ class AtGoal(pt.behaviour.Behaviour):
 
     def state_cov_callback(self,msg):
         try:
-            self.robotFound = True
             aux_pose = PoseStamped()
             aux_pose.pose= msg.pose.pose
             pose_transform = self.tf_buffer.lookup_transform("map", "odom", msg.header.stamp, rospy.Duration(3))
             self.robot_pose = tf2_geometry_msgs.do_transform_pose(aux_pose, pose_transform)
+            self.robotFound = True
             #print("The robot position is ", self.robot_pose)
         except(tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            rospy.logwarn("Failed to transform pose: {e}")
+            rospy.logwarn("Barin: Failed to transform pose: {e}")
             rospy.logwarn("Robot pose: {}".format(self.robot_pose))
 
     def update(self):
@@ -161,11 +169,16 @@ class AtGoal(pt.behaviour.Behaviour):
         common_dict['perception'] = False
         target.pose = common_dict['target']
 
-        if not self.robotFound:
-            rospy.logwarn("Running Atgoal - waiting for robot to be found and positioned")
-            return pt.common.Status.RUNNING
-        distance_to_target = math.sqrt((target.pose.position.x - self.robot_pose.pose.position.x)**2 + 
+        if self.robot_pose != None:
+            distance_to_target = math.sqrt((target.pose.position.x - self.robot_pose.pose.position.x)**2 + 
                                  (target.pose.position.y - self.robot_pose.pose.position.y)**2)
+        else:
+            return pt.common.Status.RUNNING
+    
+        if not self.robotFound:
+            rospy.logwarn(f"Running Atgoal - waiting for robot to be found and positioned {distance_to_target}")
+            return pt.common.Status.RUNNING
+
         #print("distance to target is ", distance_to_target)
         if self.lastDist2Goal == None:  #not had any delta
             self.lastDist2Goal = distance_to_target
@@ -178,12 +191,16 @@ class AtGoal(pt.behaviour.Behaviour):
 
         #if delta < 0.01:                    # Check if we are moving
         #    return pt.common.Status.FAILURE
-
-        if distance_to_target > stop_distance: #0.25:       # Moving but not close enough 
+        stop = stop_distance_box
+        if common_dict["target"] == common_dict["pickPose"]:
+            stop = stop_distance
+        elif common_dict["target"] == common_dict["placePose"]:
+            stop = stop_distance_box
+        if distance_to_target > stop: #0.25:       # Moving but not close enough 
             #print("running atgoal > stop_distance")
-            rospy.logwarn("running atgoal - > stop_distance")
+            rospy.logwarn(f"running atgoal - > stop_distance {distance_to_target}")
             return pt.common.Status.RUNNING
-        elif distance_to_target <= stop_distance: #0.25:    # Close enough, reset dis2Goal
+        elif distance_to_target <= stop: #0.25:    # Close enough, reset dis2Goal
             self.lastDist2Goal = None
             #reset target position value
         
@@ -191,9 +208,10 @@ class AtGoal(pt.behaviour.Behaviour):
             common_dict['arm_mission']=0
             common_dict['perception']=False
             common_dict['path_control']=False
-            common_dict['target'] = common_dict['placePose']
+
             #rospy.loginfo(f"Updated dict as: {common_dict}")
             rospy.loginfo("success Atgoal")
+            self.rate.sleep()
             return  pt.common.Status.SUCCESS   
     
 class Pick(pt.behaviour.Behaviour):
@@ -215,7 +233,7 @@ class Pick(pt.behaviour.Behaviour):
             common_dict['arm_mission']=1
             common_dict['perception']=False
             common_dict['path_control']=False
-            common_dict['target'] = common_dict['pickPose']
+            #common_dict['target'] = common_dict['pickPose']
             #rospy.loginfo(f"Updated dict as: {common_dict}")
             rospy.logwarn("Running pick")
             return pt.common.Status.RUNNING
@@ -229,31 +247,31 @@ class Pick(pt.behaviour.Behaviour):
             #print("success pick")
             return pt.common.Status.SUCCESS
         
-        elif self.arm_status < 0 :
-            time = rospy.Time(0)
-            try:
-                trans = self.buffer.lookup_transform("base_link","map", time, rospy.Duration(0.5))
-                do_trans = tf2_geometry_msgs.do_transform_pose(common_dict['pickPose'], trans)
-                if self.arm_status == -1:
-                    do_trans.pose.position.y +=0.05
-
-                elif self.arm_status == -2:
-                    do_trans.pose.position.x += 0.05
-
-                elif self.arm_status == -3:
-                    do_trans.pose.position.y -=0.05
-
-                trans = self.buffer.lookup_transform("map","base_link", time, rospy.Duration(0.5))
-                do_trans2 = tf2_geometry_msgs.do_transform_pose(do_trans, trans)
-                common_dict['path_gen_mission']=1
-                common_dict['arm_mission']=0
-                common_dict['perception']=False
-                common_dict['path_control']=True
-                common_dict['target'] = do_trans2.pose
-                rospy.logwarn("Running pick")
-                return pt.common.Status.RUNNING
-            except:
-                rospy.logwarn("No transform in PICK!")
+#        elif self.arm_status < 0 :
+#            time = rospy.Time(0)
+#            try:
+#                trans = self.buffer.lookup_transform("base_link","map", time, rospy.Duration(0.5))
+#                do_trans = tf2_geometry_msgs.do_transform_pose(common_dict['pickPose'], trans)
+#                if self.arm_status == -1:
+#                    do_trans.pose.position.y +=0.05
+#
+#                elif self.arm_status == -2:
+#                    do_trans.pose.position.x += 0.05
+#
+#                elif self.arm_status == -3:
+#                    do_trans.pose.position.y -=0.05
+#
+#                trans = self.buffer.lookup_transform("map","base_link", time, rospy.Duration(0.5))
+#                do_trans2 = tf2_geometry_msgs.do_transform_pose(do_trans, trans)
+#                common_dict['path_gen_mission']=1
+#                common_dict['arm_mission']=0
+#                common_dict['perception']=False
+#                common_dict['path_control']=True
+#                common_dict['target'] = do_trans2.pose
+#                rospy.logwarn("Running pick")
+#                return pt.common.Status.RUNNING
+#            except:
+#                rospy.logwarn("No transform in PICK!")
         else:
             rospy.logerr("failure pick")
             #print("failure pick")
@@ -276,7 +294,7 @@ class Place(pt.behaviour.Behaviour):
             common_dict['arm_mission']=2
             common_dict['perception']=False
             common_dict['path_control']=False
-            common_dict['target'] = common_dict['placePose']
+            common_dict['target'] = common_dict["placePose"]
             
             #rospy.logwarn(f"Updated dict as: {common_dict}")
             rospy.logwarn("Running place")
@@ -293,13 +311,6 @@ class Place(pt.behaviour.Behaviour):
             rospy.loginfo("Success place")
             #print("success palce")
             return pt.common.Status.SUCCESS
-        
-        
-        
-        
-        
-        
-        
         else:
             rospy.logerr("Failure place")
             #print("failure palce")
@@ -463,6 +474,7 @@ if __name__ == "__main__":
     placePose = Pose()
     object_id = None
     Status = -1 #0: completed place, 1:was doing exploration
+    boxid = None
     pub_flags = rospy.Publisher('/system_flags', flags, queue_size=1)
     common_dict = {
         "arm_mission": arm_mission,
@@ -474,6 +486,7 @@ if __name__ == "__main__":
         "pickPose": pickPose,
         "placePose": placePose,
         "Status": Status,
+        "boxid": boxid,
     }
   
     time.sleep(60)
