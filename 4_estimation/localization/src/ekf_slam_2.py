@@ -125,6 +125,12 @@ class localization:
             
 
     def prediction(self):
+        jF = np.array(
+            [
+            [0, 0, 0],
+            [0, 0, 0], 
+            [0, 0, 0]
+            ])
         if self.motion[1] != 0:
             self.B = np.array(
                 [
@@ -151,8 +157,8 @@ class localization:
     #            [0, 0, 0]
     #            ])
             
-            Fx = np.eye(3)
-            self.G = np.eye(3) + Fx.T @ jF @ Fx
+        Fx = np.eye(3)
+        self.G = np.eye(3) + Fx.T @ jF @ Fx
 
         if np.any([abs(round(self.motion[0], 2)), abs(round(self.motion[1], 2))]):
             self.covariance_pred[0:3,0:3] = (self.G @ self.covariance_est[0:3,0:3] @ (self.G.T)) + (Fx.T @ self.R @ Fx) 

@@ -34,7 +34,7 @@
 
  <node pkg="all_transforms" type="odometry.py" name="odometry"/>
 
-<node pkg="perception" type="perception.py" name="perception"/>
+<!--<node pkg="perception" type="perception.py" name="perception"/>-->
  <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d /home/robot/dd2419_ws/src/rviz/frameFinder.rviz"/>
 
 	<!-- In meter -->

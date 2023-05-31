@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
+from playsound import playsound
 from sensor_msgs.msg import Image as Img_msg
 from sensor_msgs.msg import CameraInfo as Cam_info
 from sensor_msgs.msg import Image as Img_msgu
@@ -44,7 +45,8 @@ pub = None
 Inspired by
 You only look once: Unified, real-time object detection, Redmon, 2016.
 """
-
+path_ = "/home/robot/BASHFUL_WS/src/Voices/Voices/"
+picpath_ = "/home/robot/BASHFUL_WS/src/2_perception/perception/Pictures/"
 def projectPixelTo3dRayUSB(camerainfo, uv):
     """
     :param uv:        rectified pixel coordinates
@@ -160,7 +162,7 @@ class object_detect:
         if msg.perception == True:
             for idx, marker in enumerate(self.marker_array.markers):
                 if int(msg.object_id) == marker.id:
-                    #rint(f'BEFORE DELETING {len(self.marker_array.markers)}')
+                    #print(f'BEFORE DELETING {len(self.marker_array.markers)}')
                     self.marker_array.markers.pop(idx)
                     #print(f'AFTER DELETING {len(self.marker_array.markers)}')
                     self.marker_pub.publish(self.marker_array)
@@ -295,7 +297,7 @@ class object_detect:
             if d < 0.01 or np.isnan(d): 
                 print("No depth")
                 continue
-            if d > 1.2:
+            if d > 1:
                 continue
 
             if self.j == 20:
@@ -335,17 +337,23 @@ class object_detect:
             y = do_trans.point.y
             z = 0 #do_trans.point.z
 
+
             if len(self.memory)>0: #len(self.memorycat)>0:
                 for mim in range(len(self.memory)):
                     if (cat == self.memory[mim][0]): 
-                        if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<0.4:
-                        #if (np.sqrt((float(self.memory[mim][1][0]**2 - x**2))< 0.1)) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2)) < 0.1):
-                            break 
-                    if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<1:
-                    #if (np.sqrt(float(self.memory[mim][1][0]**2 - x**2)) < 0.5) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2))< 0.5):
-                    #        breakpoint
-                        #print(f'SOMWTHING CLOSE')
+                        if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<0.1:	
+                        #if (np.sqrt((float(self.memory[mim][1][0]**2 - x**2))< 0.1)) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2)) < 0.1):	
+                            break 	
+                    if np.hypot((self.memory[mim][1][0] - x), (self.memory[mim][1][1] - y))<1:	
+                    #if (np.sqrt(float(self.memory[mim][1][0]**2 - x**2)) < 0.5) and (np.sqrt(float(self.memory[mim][1][1]**2 - y**2))< 0.5):	
+                    #        breakpoint	
+                        #print(f'SOMWTHING CLOSE')	
                         break 
+                    #if (self.memory[mim][1][0] - x < 0.1) and (self.memory[mim][1][1] - y < 0.1):
+                    #        continue 
+                
+                    #if (self.memory[mim][1][0] - x < 0.7) and (self.memory[mim][1][1] - y < 0.7):
+                    #    continue
 
             self.temp.insert(self.j,[cat, x, y, z, 0, self.j]) 
 
@@ -357,9 +365,8 @@ class object_detect:
             if len(tempsort) < 1:
                 continue
 
-            
             #go through list of sorted detected objects
-            tempsort = self.condition_filter(tempsort, out_image)
+            tempsort = self.condition_filter(tempsort, out_image, u1, v1, u2, v2)
 
             #self.memory.append([cat, [x,y,z]])
             self.pub_pos.publish(pm)
@@ -368,7 +375,7 @@ class object_detect:
 
         self.puben.publish(self.bridge.cv2_to_imgmsg(out_image, "rgb8"))  
 
-    def condition_filter(self, tempsort, out_image):
+    def condition_filter(self, tempsort, out_image, u1, v1, u2, v2):
         for i in range(len(tempsort)):
                 if i == 0:
                     continue
@@ -381,7 +388,7 @@ class object_detect:
                                         abs(tempsort[i][2] - tempsort[i-1][2])>1):
                         continue
 
-                    tempsort = self.filter(tempsort, i, out_image)
+                    tempsort = self.filter(tempsort, i, out_image, u1, v1, u2, v2)
                     
                     if len(tempsort)>=i:
                         self.j = len(tempsort)
@@ -391,7 +398,7 @@ class object_detect:
                     continue        
 
     
-    def filter(self, tempsort, i, out_image):
+    def filter(self, tempsort, i, out_image, u1, v1, u2, v2):
         temp_new_x = ((tempsort[i][1]-tempsort[i-1][1])/2)+tempsort[i-1][1]
         temp_new_y = ((tempsort[i][2]-tempsort[i-1][2])/2)+tempsort[i-1][2]
         temp_new_z = ((tempsort[i][3]-tempsort[i-1][3])/2)+tempsort[i-1][3]
@@ -455,19 +462,35 @@ class object_detect:
                         if np.isnan(x) or np.isnan(self.memory[mim][1][0]):
                             return tempsort
                         
-                        if np.logical_or(abs(self.memory[mim][1][0] - x)<0.04,
-                                        abs(self.memory[mim][1][1] - y)<0.04):
+                        if np.logical_or(abs(self.memory[mim][1][0] - x)<0.1,
+                                        abs(self.memory[mim][1][1] - y)<0.1):
                             #print("already detected at this x,y")
                             a = [cat]
                             break
                      
                         else:
                             #print("new of same category") #if more than 2???????
-                            cv2.imwrite("{}_1.png".format(self.catdict[cat]), out_image)
+                            
                         
                             self.memory.append([cat, [x,y,z]])
-
                             self.memorycat.append(cat)
+                     
+                            N = self.memorycat.count(cat)
+
+                            if cat >= 6: 
+                                col = self.process_color(out_image, u1, v1, u2, v2)
+                                playsound("{}{}.mp3".format(path_,self.catdict[cat]))
+                                playsound("{}{}.mp3".format(path_,col))
+                                playsound("{}Detected.mp3".format(path_))
+                                #catcat = self.catdict[cat] + col
+
+                                cv2.imwrite("{}{}_{}_{}.png".format(picpath_,self.catdict[cat], col, N), out_image)
+                            else: 
+                                
+                                playsound("{}{}.mp3".format(path_,self.catdict[cat]))
+                                playsound("{}Detected.mp3".format(path_))
+                                cv2.imwrite("{}{}_{}.png".format(picpath_,self.catdict[cat], N), out_image)
+                                
                             return tempsort
             else:
                 x = tempsort[i-1][1]
@@ -480,14 +503,23 @@ class object_detect:
                 catname = None
                 if cat >= 6:
                     catname = self.catdict[cat]
-                    col = self.process_color(out_image)
 
-                    catname = catname + col
+                    col = self.process_color(out_image, u1, v1, u2, v2)
+
+                    #catname_col = catname + col
+                    cv2.imwrite("{}{}_{}_1.png".format(picpath_,catname,col), cv2.cvtColor(out_image, cv2.COLOR_RGB2BGR))
+                    
+                    playsound("{}{}.mp3".format(path_,catname))
+                    playsound("{}{}.mp3".format(path_,col))
+                    playsound("{}Detected.mp3".format(path_))
 
                 else: 
                     catname = self.catdict[cat]
                     
-                cv2.imwrite("{}_0.png".format(catname), cv2.cvtColor(out_image, cv2.COLOR_RGB2BGR))
+                    cv2.imwrite("{}{}_1.png".format(picpath_,catname), cv2.cvtColor(out_image, cv2.COLOR_RGB2BGR))
+                    
+                    playsound("{}{}.mp3".format(path_,catname))
+                    playsound("{}Detected.mp3".format(path_))
 
                 #new_pos = np.array([pos_msg[0]*d,pos_msg[1]*d, pos_msg[2]*(d*1.5)], dtype=float)
 
@@ -497,24 +529,44 @@ class object_detect:
                 
         return tempsort
     
-    def process_color(self, out_image):
-        hsv = cv2.cvtColor(out_image, cv2.COLOR_RGB2HSV) #wrong
-        print(f'THE COLOR ARRAY {hsv}')
+    def process_color(self, out_image, u1, v1, u2, v2):
+
+        out_image[(v1):(v2), (u1):(u2)]
+        hsv = cv2.cvtColor(out_image, cv2.COLOR_RGB2HSV) 
+
+        
+        #print(f'THE COLOR ARRAY {hsv}')
         min_green = np.array([40,50,50]) 
         max_green = np.array([70,255,255]) 
-        min_red = np.array([120,50,70]) 
-        max_red = np.array([180,255,255]) 
-        min_blue = np.array([70,50,50]) 
-        max_blue = np.array([120,255,255]) 
+        min_red = np.array([80,50,50]) 
+        max_red = np.array([100,255,255]) 
+        min_blue = np.array([100,50,50]) 
+        max_blue = np.array([180,255,255]) 
         
         mask_g = cv2.inRange(hsv, min_green, max_green) 
         mask_r = cv2.inRange(hsv, min_red, max_red) 
         mask_b = cv2.inRange(hsv, min_blue, max_blue) 
 
+        cv2.imshow('maskb', mask_b)
+        cv2.imshow('maskr', mask_r)
+        cv2.imshow('maskg', mask_g)
+
+        # if (mask_g.all()) < (mask_r.all()):
+        #     if (mask_g.all())  < (mask_b.all()):
+        #         return "green"
+        #     else: 
+        #         return "blue"
+        # elif (mask_r.all()) < (mask_b.all()):
+        #     return "red"
+        # else: 
+        #     return "blue"
+
         res_b = cv2.bitwise_and(out_image, out_image, mask= mask_b) 
         res_g = cv2.bitwise_and(out_image,out_image, mask= mask_g) 
         res_r = cv2.bitwise_and(out_image,out_image, mask= mask_r)
         
+        #print(f'BLUE {res_b}, GREEN {res_g}, RED {res_r}')
+
         if res_b.any() == True:
             return "blue"
         elif res_g.any() == True:
@@ -522,7 +574,7 @@ class object_detect:
         elif res_r.any() == True:
             return "red"
         else:
-            return "beige"
+            return "wood"
     
     def rVizFunc(self, new_list):
         self.marker_array = MarkerArray()
@@ -536,7 +588,9 @@ class object_detect:
             #print(cat)
             #to handle if we have more of the same object
             if cat in marklist:
-                cat = 8 + cat 
+                num = marklist.count(cat)
+                cat = 8*(num-1) + cat 
+
             if ~np.isnan(pos_msg).any():
                 marker = Marker()
                 marker.header.frame_id = "map"
@@ -588,5 +642,4 @@ class object_detect:
 if __name__ == '__main__':
 
     ##  Start node  ##
-
     object_detect().run()
