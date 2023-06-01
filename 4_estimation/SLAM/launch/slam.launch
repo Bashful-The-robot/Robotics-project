@@ -2,7 +2,7 @@
     <node pkg="SLAM" type="aruco_anchor.py" name="aruco_anchor"></node>
     <node pkg="SLAM" type="visualize.py" name="visualize"></node>
     <node pkg="SLAM" type="am_detector.py" name="aruco_marker" output = "screen"></node>
-    <node pkg="SLAM" type="workspace.py" name="workspace"></node>
+    <node pkg="SLAM" type="workspace.py" name="workspace"></node>-->
     <node pkg="SLAM" type="discreteWorkspace.py" name="discreteWorkspace"></node>
     
     <!--<node pkg="SLAM" type="angleMapOdom.py" name="angleMapOdom"></node>-->

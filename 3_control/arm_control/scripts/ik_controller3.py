@@ -123,25 +123,25 @@ class RoboticArm:
         x = math.sqrt(y**2 + x**2)
         y = 0
         # Set different orientations of the gripper according to the distance to the object.
-        if x>=300.0/1000:
-            self.orientation = -0.785
-        elif x>250.0/1000 and x<300.0/1000:
-            self.orientation = -1.0
-        elif x>=190.0/1000 and x<=250.0/1000:
-            self.orientation = -1.22
-        elif x>=160.0/1000 and x<190.0/1000:
-            self.orientation = -1.5708
-        elif x<160/1000:
-            hola=0#exit()
+        if self.PICK:
+            if x>=300.0/1000:
+                self.orientation = -0.785
+            elif x>250.0/1000 and x<300.0/1000:
+                self.orientation = -1.0
+            elif x>=190.0/1000 and x<=250.0/1000:
+                self.orientation = -1.22
+            elif x>=160.0/1000 and x<190.0/1000:
+                self.orientation = -1.5708
+            elif x<160/1000:
+                hola=0#exit()
+        if self.LEAVE:
+            self.orientation = -0.35
 
         # Calculate the different commands    
         P_x = x - self.length3 * math.cos(self.orientation)
         P_z = z - self.length3 * math.sin(self.orientation)
-        print(P_x)
-        print(self.length3 * math.sin(self.orientation))
-        print(z)
-        print(P_z)
-        print("second step")
+        
+       
         if yaw < 0:
             self.joint1_angle = yaw - 0.05
             
@@ -150,7 +150,7 @@ class RoboticArm:
 
         expr = ((P_z**2 + P_x**2) - (self.length1**2 + self.length2**2))/(2*self.length1*self.length2)
         
-        if expr <=1:
+        try:
             self.joint3_angle = - math.acos(((P_z**2 + P_x**2) - (self.length1**2 + self.length2**2))/(2*self.length1*self.length2))
 
             self.joint2_angle = math.atan2(P_z , P_x) -  math.atan2(self.length2 * math.sin(self.joint3_angle),(self.length1 + self.length2 * math.cos(self.joint3_angle)))
@@ -165,12 +165,17 @@ class RoboticArm:
             self.command2_duration = abs(self.joint2_angle - self.joint2_state) * self.time_factor
             self.command3_duration = abs(self.joint3_angle - self.joint3_state) * self.time_factor 
             self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor 
+        except:            
+            if self.LEAVE:
+                self.set_fixed_leave()
+            if self.PICK:
+                controller.return_to_origin()
+                controller.arm_info.data = 1 #2 #3
+                controller.arm_info_pub.publish(controller.arm_info)
+                rospy.sleep(1)
 
-        # else:
-        #     if yaw > 0:
-        #         self.arm_info = -1
-        #     elif yaw < 0:
-        #         self.arm_info = -3
+                
+        
             
         
         print("command 1:",self.joint1_angle,"state:",self.command1_duration)
@@ -178,6 +183,47 @@ class RoboticArm:
         print("command 3:",self.joint3_angle,"state:",self.command3_duration)
         print("command 4:",self.joint4_angle,"state:",self.command4_duration)
     
+    def set_fixed_leave(self):
+        self.joint1_angle = -0.075
+        self.joint2_angle = -0.2
+        self.joint3_angle = -1.35
+        self.joint4_angle = 0.0
+
+        self.command1_duration = abs(self.joint1_angle - self.joint1_state) * self.time_factor
+        self.command2_duration = abs(self.joint2_angle - self.joint2_state) * self.time_factor
+        self.command3_duration = abs(self.joint3_angle - self.joint3_state) * self.time_factor 
+        self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor
+
+        
+        # command2 = CommandDuration()
+        # command2.data = self.joint2_angle
+        # command2.duration = self.command2_duration
+        # self.joint2_command_pub.publish(command2)
+        # rospy.sleep(self.command2_duration/1000)
+        
+        # command3 = CommandDuration()
+        # command3.data = self.joint3_angle
+        # command3.duration = self.command3_duration
+        # self.joint3_command_pub.publish(command3)
+        # rospy.sleep(self.command3_duration/1000)
+        
+        # command4 = CommandDuration()
+        # command4.data = self.joint4_angle
+        # command4.duration = self.command4_duration
+        # self.joint4_command_pub.publish(command4)
+        # rospy.sleep(self.command4_duration/1000)
+
+        # command1 = CommandDuration()
+        # command1.data = self.joint1_angle
+        # command1.duration = self.command1_duration
+        # self.joint1_command_pub.publish(command1)
+        # rospy.sleep(self.command1_duration/1000)
+       
+        # gripper_command = Float64()
+        # gripper_command.data = -1.5 
+        # self.gripper_pub.publish(gripper_command)
+        # rospy.sleep(1)
+        self.SUCCESS = True
     
     
     def publish_commands(self):
@@ -212,13 +258,13 @@ class RoboticArm:
         if  self.PICK == True and self.LEAVE == False: # Pick object  sequence 
             rospy.sleep(0.5)
             gripper_command = Float64()
-            gripper_command.data = -0.18
+            gripper_command.data = 0.6
             self.gripper_pub.publish(gripper_command)
             rospy.sleep(1)
         elif self.PICK == False and self.LEAVE == True: # Leave object sequence 
             rospy.sleep(0.5)
             gripper_command = Float64()
-            gripper_command.data = -1.3
+            gripper_command.data = -1.5 
             self.gripper_pub.publish(gripper_command)
             rospy.sleep(1)
 
@@ -273,7 +319,7 @@ class RoboticArm:
         self.command4_duration = abs(self.joint4_angle - self.joint4_state) * self.time_factor
 
         gripper_command = Float64()
-        gripper_command.data = -1.8
+        gripper_command.data = -1.5
         self.gripper_pub.publish(gripper_command)
         rospy.sleep(1)
         
@@ -317,27 +363,39 @@ if __name__ == '__main__':
         
         if controller.START_MISSION == True:
             rospy.sleep(1)
+           
             
             if controller.PICK == True:
                 controller.go_detect_pos()
-                msg = rospy.wait_for_message('arm_cam_pos',PointStamped)
-                controller.calculate_commands(msg.point.x + 0.235, msg.point.y, -0.145)
+                try:
+                    msg = rospy.wait_for_message('arm_cam_pos',PointStamped, timeout=3)
+                    controller.calculate_commands(msg.point.x + 0.235, msg.point.y, -0.145)
+                except:
+                    controller.return_to_origin()
+                    controller.arm_info.data = 1 #2 #3
+                    controller.arm_info_pub.publish(controller.arm_info)
+                    #rospy.sleep(1)
+                    
+               
             
             elif controller.LEAVE == True:   
-                try:
-                    Pose_aux = PoseStamped()
-                    Pose_aux.header.frame_id = 'map'
-                    Pose_aux.pose.position.x = controller.target_x
-                    Pose_aux.pose.position.y = controller.target_y
-                    Pose_aux.pose.position.z = 0
+                print("Ejecuto la secuencia LEAVE")
+                # try:
+                #     Pose_aux = PoseStamped()
+                #     Pose_aux.header.frame_id = 'map'
+                #     Pose_aux.pose.position.x = controller.target_x
+                #     Pose_aux.pose.position.y = controller.target_y
+                #     Pose_aux.pose.position.z = 0
     
-                    transform = controller.tf_buffer.lookup_transform('arm','map', rospy.Time(0), rospy.Duration(5.0))
-                    pose_transformed = tf2_geometry_msgs.do_transform_pose(Pose_aux, transform)
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-                    rospy.logwarn("Failed to transform pose: {e}")
-                controller.calculate_commands(pose_transformed.pose.position.x, pose_transformed.pose.position.y, 0)
+                #     transform = controller.tf_buffer.lookup_transform('arm','map', rospy.Time(0), rospy.Duration(5.0))
+                #     pose_transformed = tf2_geometry_msgs.do_transform_pose(Pose_aux, transform)
+                # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                #     rospy.logwarn("Failed to transform pose: {e}")
+                # controller.calculate_commands(pose_transformed.pose.position.x, pose_transformed.pose.position.y, 0.05)
+                controller.set_fixed_leave()
             
             if controller.SUCCESS == True:
+                print("controller success",controller.SUCCESS)
                 controller.publish_commands()
 
                 controller.return_to_origin()

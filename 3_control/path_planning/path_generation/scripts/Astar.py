@@ -91,9 +91,9 @@ class Astar:
         #try:
         if self.grid[goal.x,goal.y] == 100:                             #Goal is on obstacles   
             removeLastElement = True      
-            self.grid[goal.x,goal.y] = 0
-            range = 10
-            self.grid[goal.x-range: goal.x+range, goal.y-range: goal.y+range] = 0                                              
+            self.grid[goal.x,goal.y] = 1
+            range = 6
+            self.grid[goal.x-range: goal.x+range, goal.y-range: goal.y+range] = 1                                              
 
         while len(open_list) > 0:
             current = min(open_list, key=lambda node: node.f_cost())    #Selects element from list with smallest f cost
@@ -117,7 +117,6 @@ class Astar:
                 vacant_neighbors = self.get_vacant_neighbors(current)
                 if len(vacant_neighbors) == 0:
                     print("No neighbors")
-                    rospy.loginfo(f"ASTARRRRR -- no neighbors")
                     return None
                 
                 for neighbor in vacant_neighbors:

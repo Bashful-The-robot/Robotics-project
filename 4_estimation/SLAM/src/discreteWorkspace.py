@@ -18,6 +18,8 @@ import sys
 #from scipy.ndimage.morphology import binary_dilation
 from scipy.ndimage import binary_dilation, gaussian_filter
 import matplotlib.pyplot as plt
+from robp_msgs.msg import flags
+
 # create class that discretizes the workspace 
 class Workspace:
     def __init__(self):
@@ -36,7 +38,7 @@ class Workspace:
         rospy.Subscriber('/geofence',MarkerArray,self.marker_callback)
         rospy.Subscriber('/marker2', MarkerArray, self.objectCallback)
         rospy.Subscriber('/marker', MarkerArray, self.aruco_cb)
-
+        rospy.Subscriber('/system_flags',flags,self.brain_cb,queue_size=1)
     # Variables
         self.resolution = 0.05
         self.width = 0
@@ -60,7 +62,8 @@ class Workspace:
         self.grid_available = False
         self.givenRobotPose = False 
         self.prevGridExist = False
-        
+        self.armMotion = 0
+
         self.objNameArray = []
         self.workspacePoints = []
         self.cubePose = []
@@ -69,10 +72,15 @@ class Workspace:
         self.rate = rospy.Rate(2)
         
         self.init_ard_rob = True
+    def brain_cb(self,msg):
+        self.armMotion = msg.arm_mission
 
 
     def aruco_cb(self, msg):
         # get the position of the aruco marker
+
+        if self.armMotion == 1 or self.armMotion ==2: # Dont update grid when arm is in motion
+            return
         if not self.grid_available:
             rospy.loginfo("NO GRID (IN CB ARUCO)")
             return
@@ -88,7 +96,7 @@ class Workspace:
                 ygrid = math.ceil((y-self.ymin)/(self.ymax-self.ymin)*self.height)
                 
                 self.markerPose.append([xgrid,ygrid])
-        rospy.loginfo(f"The marker pose: {self.markerPose},xmin,ymin ,({self.xmin},{self.ymin} & maxes: ({self.xmax},{self.ymax}))")
+        #rospy.loginfo(f"The marker pose: {self.markerPose},xmin,ymin ,({self.xmin},{self.ymin} & maxes: ({self.xmax},{self.ymax}))")
 
 
 
@@ -96,6 +104,7 @@ class Workspace:
         #WILL NOT HAVE TO HANDLE MUPLITIPLES OF SAME OBJECT!!  MarkerArray
 
         #THIS WILL HAVE TO CHANGE, CORNELIA IS SENDING IN A MARKERARRAY WITH ALL OBJECTS
+
         
         if not self.grid_available: # We have not initialized all parameters yet
             rospy.loginfo("NO GRID, Object_cb")
@@ -144,6 +153,11 @@ class Workspace:
         '''Think it works as a windshield wiper, scanning the range. Need initial angle'''
         
     #Make sure self.width and heigh seen and defined!
+
+        if self.armMotion !=0: # Dont update grid when arm is in motion
+            return
+
+
         if not self.grid_available or not self.givenRobotPose:
             rospy.loginfo(f"laser cb grid;{self.grid_available}, Robot:{self.givenRobotPose}")
             return
@@ -308,12 +322,12 @@ class Workspace:
                     ymin = y
           
     # Save the height and width and other parameters of the workspace.
-            self.height = math.ceil((maxY+3.2-ymin)/self.resolution)
-            self.width = math.ceil((maxX+3.2-xmin)/self.resolution)
-            self.ymax = maxY+1.6
-            self.xmax = maxX+1.6
-            self.xmin = xmin-1.6
-            self.ymin = ymin-1.6
+            self.height = math.ceil((maxY+2.6-ymin)/self.resolution)
+            self.width = math.ceil((maxX+2.6-xmin)/self.resolution)
+            self.ymax = maxY+1.3
+            self.xmax = maxX+1.3
+            self.xmin = xmin-1.3
+            self.ymin = ymin-1.3
             self.workspace_seen = True
             print(f"MAx,MIN: {self.xmax},{self.ymax}")
 
@@ -427,11 +441,14 @@ class Workspace:
         #                self.grid_data = self.lineAlgorithm(self.workspacePoints[i][0],self.workspacePoints[i][1],self.workspacePoints[i+1][0],self.workspacePoints[i+1][1],self.grid_data)
         
         self.grid_data[self.occMask]=100
-        '''for i in range(len(self.cubePose)):
+        for i in range(len(self.cubePose)):
             try:
-                self.grid_data[int(self.cubePose[i][0]),int(self.cubePose[i][1])] = 100
+                #self.grid_data[int(self.cubePose[i][0]),int(self.cubePose[i][1])] = 100
+                self.grid_data[int(self.cubePose[i][0]-1):(int(self.cubePose[i][0]+1)),int(self.cubePose[i][1]-1):int(self.cubePose[i][1]+1)] = 100
+                
+                print(f"Location of cube : {int(self.cubePose[i][0])},{int(self.cubePose[i][1])}")
             except:
-                print("Detection outside workspace")'''
+                print("Detection outside workspace")
 
 
 

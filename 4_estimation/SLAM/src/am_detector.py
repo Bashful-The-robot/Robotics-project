@@ -48,13 +48,15 @@ class AMdetector:
                     temp.pose.position.y = tf.transform.translation.y
                     temp.pose.position.z = tf.transform.translation.z
                     temp.pose.orientation= tf.transform.rotation
-                    trans = self.buffer.lookup_transform("camera_color_optical_frame","odom", tf.header.stamp, rospy.Duration(0.5))
+                    trans = self.buffer.lookup_transform("camera_color_optical_frame","odom", tf.header.stamp, rospy.Duration(1.5))
+
                     do_trans = tf2_geometry_msgs.do_transform_pose(temp, trans)
+
                     z = do_trans.pose.position.z
                     x = do_trans.pose.position.x
                     theta = math.atan2(z,x)
-                    do_trans.pose.position.z += 0.08*math.sin(theta)
-                    do_trans.pose.position.x += 0.08*math.cos(theta)
+                    do_trans.pose.position.z += 0.05*math.sin(theta)
+                    do_trans.pose.position.x += 0.05*math.cos(theta)
                     trans = self.buffer.lookup_transform("map","camera_color_optical_frame", tf.header.stamp, rospy.Duration(0.5))
                     do_trans = tf2_geometry_msgs.do_transform_pose(do_trans, trans)
                     self.marker = Marker()

@@ -16,6 +16,8 @@ Kia=0.0000002*factori #0.0000002
 Kib=0.000000155*factori #0.000000155
 Kda=0.0000002/factord #0.0000002
 Kdb=0.000000155/factord #0.000000155
+#Kda = 0
+#Kdb = 0
 r=0.04921 #radious of the wheel
 b=0.3 #distance between the wheels
 f=20 #desired frequency in Hz
@@ -36,8 +38,8 @@ class CartesianController:
         self.msg = False
         self.delta_encoder_left = 0
         self.delta_encoder_right = 0
-        self.dt_left = 1e-9
-        self.dt_right = 1e-9
+        self.dt_left = 1e-12
+        self.dt_right = 1e-12
         self.reset_integral = False
 
         #we create the subscribers and the publishers

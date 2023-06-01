@@ -2,6 +2,6 @@
 <launch>
 	
 	<!-- load the goal node -->
-	<node pkg="path_generation"  name="path_generation" type="PathControl.py"/>
+	<node pkg="path_generation"  name="path_generation" type="PathControl.py" output="screen"/>
 
 </launch>

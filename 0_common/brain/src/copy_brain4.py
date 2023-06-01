@@ -370,19 +370,19 @@ class Exploration(pt.behaviour.Behaviour):
 
 
     def update(self):
-        if not self.msg_explore:                    # IF we have not explored all cells!
+        if not self.msg_explore:
             common_dict['arm_mission'] = 0
-            common_dict['path_gen_mission'] = -1    # Exploring!
+            common_dict['path_gen_mission'] = -1
             common_dict['perception'] = False
             common_dict['path_control'] = True
             common_dict['target'] = Pose()
             common_dict['pickPose'] = Pose()
             common_dict['placePose'] = Pose()
             common_dict['object_id'] = None
-            common_dict['Status'] = 1               # Dont know!
-            common_dict["DONE"] = self.msg_explore  #Done is False
+            common_dict['Status'] = 1
+            common_dict["DONE"] = self.msg_explore
             rospy.loginfo("success exploration")
-
+            
         #print("success exploration")
 
         else:

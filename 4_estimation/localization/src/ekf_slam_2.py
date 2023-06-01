@@ -69,7 +69,7 @@ class localization:
         self.odom_ori = np.zeros(3)
 
         #variable-aruco
-        self.max_aruco_dist = 1.2
+        self.max_aruco_dist = 1.5
         self.anchor = False
         self.landmark_aruco = np.zeros((2,self.landmark)) # 500, 1, 2, 3
         self.buffer = tf2_ros.Buffer(rospy.Duration(100))
