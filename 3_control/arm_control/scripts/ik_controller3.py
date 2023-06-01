@@ -170,7 +170,7 @@ class RoboticArm:
                 self.set_fixed_leave()
             if self.PICK:
                 controller.return_to_origin()
-                controller.arm_info.data = 1 #2 #3
+                controller.arm_info.data = 3 #2 #3                  # SHOULD BE 3
                 controller.arm_info_pub.publish(controller.arm_info)
                 rospy.sleep(1)
 
@@ -258,15 +258,15 @@ class RoboticArm:
         if  self.PICK == True and self.LEAVE == False: # Pick object  sequence 
             rospy.sleep(0.5)
             gripper_command = Float64()
-            gripper_command.data = 0.6
+            gripper_command.data = 0.8
             self.gripper_pub.publish(gripper_command)
-            rospy.sleep(1)
+            rospy.sleep(2)
         elif self.PICK == False and self.LEAVE == True: # Leave object sequence 
             rospy.sleep(0.5)
             gripper_command = Float64()
             gripper_command.data = -1.5 
             self.gripper_pub.publish(gripper_command)
-            rospy.sleep(1)
+            rospy.sleep(2)
 
     
     def return_to_origin (self):
@@ -372,7 +372,7 @@ if __name__ == '__main__':
                     controller.calculate_commands(msg.point.x + 0.235, msg.point.y, -0.145)
                 except:
                     controller.return_to_origin()
-                    controller.arm_info.data = 1 #2 #3
+                    controller.arm_info.data = 3 #2 #3              #Should be 3!
                     controller.arm_info_pub.publish(controller.arm_info)
                     #rospy.sleep(1)
                     

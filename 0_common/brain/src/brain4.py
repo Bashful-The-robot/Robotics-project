@@ -18,7 +18,7 @@ from playsound import playsound
 #from reactive_sequence import RSequence
 
 ##TO BE CHANGED #CHANGE!!!!! change everything here before starting!!!!!!!!!!!!!!
-stop_distance = 0.25
+stop_distance = 0.20
 stop_distance_box = 0.2 #0.25
 
 path_ = "/home/robot/BASHFUL_WS/src/Voices/Voices/Successfully_placed_object.mp3"
@@ -236,30 +236,58 @@ class Pick(pt.behaviour.Behaviour):
         global counter 
         rospy.loginfo(f"COUNTER {counter}")
         '''Generic function to pick'''
-        
-        if self.arm_status == 0:
-            common_dict['path_gen_mission']=0
-            common_dict['arm_mission']=1
-            common_dict['perception']=False
-            common_dict['path_control']=False
-            #common_dict['target'] = common_dict['pickPose']
-            #rospy.loginfo(f"Updated dict as: {common_dict}")
-            rospy.logwarn("Running pick")
-            return pt.common.Status.RUNNING
-        elif self.arm_status == 1:
-            common_dict['path_gen_mission']=1
+        if counter >= 3:
+
+            common_dict["perception"] = True
+            common_dict['path_gen_mission']=-1
             common_dict['arm_mission']=0
-            common_dict['perception']=False
             common_dict['path_control']=True
-            common_dict['target'] = common_dict['placePose']
-            rospy.loginfo("success pick")
-            #print("success pick")
-            return pt.common.Status.SUCCESS
-        else:
-            rospy.logerr("failure pick")
-            common_dict['perception']=True
-            #print("failure pick")
+            common_dict['target'] = Pose() 
+            common_dict['pickPose'] = Pose()
+            common_dict['placePose'] = Pose()
+            common_dict['Status'] = 0           #Not sure!
+            
+            #rospy.sleep(0.25)
+            flag = flags()
+            flag.header.stamp = rospy.Time.now()
+
+            flag.arm_mission = common_dict['arm_mission']
+            flag.path_gen_mission = common_dict['path_gen_mission']
+            flag.perception = common_dict['perception']
+            flag.path_control =  common_dict['path_control']
+            flag.target = common_dict['target'] 
+            flag.object_id = str(common_dict['object_id'])
+            pub_flags.publish(flag) 
+            
+            counter = 0
             return pt.common.Status.FAILURE
+        
+        else:
+            if self.arm_status == 0:
+                common_dict['path_gen_mission']=0
+                common_dict['arm_mission']=1
+                common_dict['perception']=False
+                common_dict['path_control']=False
+                #common_dict['target'] = common_dict['pickPose']
+                #rospy.loginfo(f"Updated dict as: {common_dict}")
+                rospy.logwarn("Running pick")
+                return pt.common.Status.RUNNING
+            elif self.arm_status == 1:
+                common_dict['path_gen_mission']=1
+                common_dict['arm_mission']=0
+                common_dict['perception']=False
+                common_dict['path_control']=True
+                common_dict['target'] = common_dict['placePose']
+                rospy.loginfo("success pick")
+                #print("success pick")
+                return pt.common.Status.SUCCESS
+            else:
+                rospy.logerr("failure pick")
+                #common_dict['perception']=True
+                #print("failure pick")
+                self.arm_status = 0
+                counter += 1
+                return pt.common.Status.FAILURE
 
 class Place(pt.behaviour.Behaviour):
     '''Generic place behaviour'''
@@ -297,6 +325,7 @@ class Place(pt.behaviour.Behaviour):
             rospy.loginfo("Success place")
             #print("success palce")
             playsound(path_)
+            rospy.Rate(2.5).sleep()
             return pt.common.Status.SUCCESS
         else:
             rospy.logerr("Failure place")
@@ -382,14 +411,19 @@ class Exploration(pt.behaviour.Behaviour):
             common_dict['Status'] = 1               # Dont know!
             common_dict["DONE"] = self.msg_explore  #Done is False
             rospy.loginfo("success exploration")
+            return pt.common.Status.SUCCESS ## check with Filippa
 
         #print("success exploration")
 
         else:
             if self.robot_pose != None:
-                distance_to_target = math.sqrt((target.pose.position.x - self.robot_pose.pose.position.x)**2 + 
-                                 (target.pose.position.y - self.robot_pose.pose.position.y)**2)
+                distance_to_target = math.sqrt((target.position.x - self.robot_pose.pose.position.x)**2 + 
+                                 (target.position.y - self.robot_pose.pose.position.y)**2)
                 if distance_to_target <= 0.2:
+                    common_dict['path_gen_mission'] = 0
+                    common_dict['path_control'] = False
+                    common_dict["DONE"] = self.msg_explore  
+                    rospy.logerr(" Failure Exploration, (Complete!)")
                     return pt.common.Status.FAILURE
 
             common_dict['arm_mission'] = 0
@@ -401,10 +435,11 @@ class Exploration(pt.behaviour.Behaviour):
             common_dict['placePose'] = Pose()
             common_dict['object_id'] = None
             common_dict['Status'] = -1
-            common_dict["DONE"] = self.msg_explore
+            rospy.logwarn(" Running Exploration!")
+            
+            return pt.common.Status.RUNNING
 
             
-        return pt.common.Status.SUCCESS ## check with Filippa
     
 class DetectNewLandmark(pt.behaviour.Behaviour):
     def __init__(self):
@@ -515,6 +550,8 @@ def bpublish():
         flag.target = common_dict['target'] 
     flag.object_id = str(common_dict['object_id'])
     pub_flags.publish(flag) 
+    
+
 
 if __name__ == "__main__":
     # Init ros node
@@ -528,7 +565,7 @@ if __name__ == "__main__":
     pickPose = Pose()
     placePose = Pose()
     object_id = None
-    Status = -1 #0: completed place, 1:was doing exploration, 2:ALLDONE
+    Status = -1 #0: completed place, 1:was doing exploration ##, 2:ALLDONE
     boxid = None
     done = False
     pub_flags = rospy.Publisher('/system_flags', flags, queue_size=1)
@@ -546,7 +583,7 @@ if __name__ == "__main__":
         "DONE": done,
     }
   
-    time.sleep(90)
+    time.sleep(100)
     #pub_flags = rospy.Publisher('/system_flags', flags, queue_size=1)
     
     # NODES ADDED

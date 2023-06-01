@@ -147,7 +147,7 @@ class object_detect:
 
         self.Pin = PinholeCameraModel()
 
-        rospy.Subscriber('/system_flags',flags, self.callback_flag)
+        rospy.Subscriber('/system_flags',flags, self.callback_flag, queue_size=10)
 
         tss = ApproximateTimeSynchronizer([Subscriber('/usb_cam/image_raw', Img_msgu),
                               Subscriber('usb_cam/camera_info', Cam_infou)],1,1)
@@ -163,6 +163,7 @@ class object_detect:
         print("NEW IMAGE RECEIVED") 
 
     def callback_flag(self, msg: flags):
+    
         if msg.perception == True:
             rospy.loginfo(f'BEFORE DELETING {len(self.marker_array.markers)}')
             temp_list = copy.deepcopy(self.marker_array)
@@ -179,11 +180,11 @@ class object_detect:
             for idx, marker in enumerate(temp_list.markers):
                 if int(msg.object_id) == marker.id:
                     self.memory.pop(idx)
+                    self.memorycat.pop(idx)
 
             rospy.loginfo(f'AFTER DELETING {len(self.marker_array.markers)}')
             self.marker_pub.publish(self.marker_array)
             
-            rospy.Rate(10).sleep()
 
     def callback_usb(self, msg: Img_msgu, msgi:Cam_infou):
         
